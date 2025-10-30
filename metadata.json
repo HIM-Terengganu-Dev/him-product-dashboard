@@ -1,0 +1,5 @@
+{
+  "name": "HIM Wellness BI Dashboard",
+  "description": "A modern, responsive Business Intelligence (BI) dashboard to visualize key business metrics for orders, CRM, leads, sales, and products. Built with React and Tailwind CSS.",
+  "requestFramePermissions": []
+}
