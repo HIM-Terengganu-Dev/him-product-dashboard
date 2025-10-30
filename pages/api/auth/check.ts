@@ -33,7 +33,8 @@ export default async function handler(
         [email.toLowerCase()] // Store and check emails in a consistent case
       );
       
-      const isAuthorized = result.rowCount > 0;
+      // FIX: Safely handle the case where rowCount might be null.
+      const isAuthorized = (result.rowCount ?? 0) > 0;
 
       res.status(200).json({ authorized: isAuthorized });
     } finally {

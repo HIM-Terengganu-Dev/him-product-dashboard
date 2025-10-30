@@ -28,6 +28,7 @@ const navItems: NavItem[] = [
       { name: 'Client Segment', view: 'Client Segment' },
     ],
   },
+  { name: 'Leads', view: 'Leads', icon: LeadsIcon },
   { name: 'Sales', view: 'Sales', icon: SalesIcon },
   { name: 'Products', view: 'Products', icon: ProductsIcon },
   { name: 'Messages', view: 'Messages', icon: MessagesIcon },
