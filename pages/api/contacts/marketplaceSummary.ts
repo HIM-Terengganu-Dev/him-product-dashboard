@@ -1,6 +1,12 @@
 import { Pool } from 'pg';
 import type { NextApiRequest, NextApiResponse } from 'next';
 
+// FIX: Correct the type for NextApiRequest to include the 'method' property,
+// resolving an error that can be caused by conflicting types or configuration issues.
+interface ApiRequest extends NextApiRequest {
+  method?: string;
+}
+
 interface MarketplaceSummaryData {
   marketplace: string;
   count: number;
@@ -14,7 +20,7 @@ const pool = new Pool({
 });
 
 export default async function handler(
-  req: NextApiRequest,
+  req: ApiRequest,
   res: NextApiResponse<MarketplaceSummaryData[] | { error: string }>
 ) {
   if (req.method !== 'GET') {

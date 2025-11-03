@@ -8,11 +8,11 @@ import PlaceholderView from '../components/PlaceholderView';
 import Header from '../components/Header';
 import ClientStatusView from '../components/ClientStatusView';
 import ClientSegmentView from '../components/ClientSegmentView';
+import ProspectStatusView from '../components/ProspectStatusView';
 import LoginView from '../components/LoginView';
 import { jwtDecode } from 'jwt-decode';
-import LeadsProspectsMainView from '../components/LeadsProspectsMainView';
 
-export type ViewType = "Dashboard" | "Orders" | "CRM" | "Client Status" | "Client Segment" | "Leads" | "Sales" | "Products" | "Messages" | "Settings";
+export type ViewType = "Dashboard" | "Orders" | "CRM" | "Client Status" | "Client Segment" | "Prospect Status" | "Sales" | "Products" | "Messages" | "Settings";
 
 interface User {
   name: string;
@@ -124,8 +124,8 @@ export default function HomePage() {
         return <ClientStatusView />;
       case "Client Segment":
         return <ClientSegmentView />;
-      case "Leads":
-        return <LeadsProspectsMainView />;
+      case "Prospect Status":
+        return <ProspectStatusView />;
       case "Sales":
         return <PlaceholderView title="Sales" />;
       case "Products":

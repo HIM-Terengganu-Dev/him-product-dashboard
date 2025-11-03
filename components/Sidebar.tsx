@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { ViewType } from '../app/page';
-import { DashboardIcon, OrdersIcon, CrmIcon, LeadsIcon, SalesIcon, ProductsIcon, MessagesIcon, SettingsIcon, LogoIcon, ChevronLeftIcon, ChevronDownIcon } from './Icons';
+import { DashboardIcon, OrdersIcon, CrmIcon, SalesIcon, ProductsIcon, MessagesIcon, SettingsIcon, ChevronLeftIcon, ChevronDownIcon } from './Icons';
 
 interface SidebarProps {
   activeView: ViewType;
@@ -25,10 +25,10 @@ const navItems: NavItem[] = [
     subItems: [
       { name: 'Main', view: 'CRM' },
       { name: 'Client Status', view: 'Client Status' },
+      { name: 'Prospect Status', view: 'Prospect Status' },
       { name: 'Client Segment', view: 'Client Segment' },
     ],
   },
-  { name: 'Leads', view: 'Leads', icon: LeadsIcon },
   { name: 'Sales', view: 'Sales', icon: SalesIcon },
   { name: 'Products', view: 'Products', icon: ProductsIcon },
   { name: 'Messages', view: 'Messages', icon: MessagesIcon },
@@ -55,9 +55,12 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView, isOpen, se
   return (
     <div className={`bg-white text-gray-700 flex flex-col transition-all duration-300 ease-in-out border-r border-gray-200 ${isOpen ? 'w-64' : 'w-20'}`}>
        <div className="flex items-center justify-between p-4 h-20 border-b border-gray-200">
-        <div className={`flex items-center space-x-2 ${!isOpen && 'justify-center w-full'}`}>
-          <LogoIcon className="h-8 w-8 text-indigo-600" />
-          {isOpen && <span className="text-xl font-bold text-gray-800">HIM Wellness</span>}
+        <div className={`flex items-center transition-opacity duration-300 ${isOpen ? 'pl-2' : 'justify-center w-full'}`}>
+            {isOpen ? (
+                <span className="text-2xl font-bold text-indigo-700">HIM Product</span>
+              ) : (
+                <span className="text-2xl font-bold text-indigo-700">HP</span>
+            )}
         </div>
         <button onClick={() => setOpen(!isOpen)} className="p-2 rounded-full hover:bg-gray-100 hidden lg:block">
           <ChevronLeftIcon className={`w-6 h-6 text-gray-600 transition-transform duration-300 ${!isOpen && 'rotate-180'}`} />

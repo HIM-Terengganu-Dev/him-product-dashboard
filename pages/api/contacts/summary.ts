@@ -1,6 +1,13 @@
 import { Pool } from 'pg';
 import type { NextApiRequest, NextApiResponse } from 'next';
 
+// FIX: Correct the type for NextApiRequest to include the 'query' property,
+// resolving an error that was caused by it being missing from the custom type.
+interface ApiRequest extends NextApiRequest {
+  method?: string;
+  query: { [key: string]: string | string[] | undefined };
+}
+
 type ContactType = 'Client' | 'Prospect' | 'Lead';
 
 interface TypeSummaryData {
@@ -29,7 +36,7 @@ const pool = new Pool({
 });
 
 export default async function handler(
-  req: NextApiRequest,
+  req: ApiRequest,
   res: NextApiResponse<SummaryResponse | { error: string }>
 ) {
   if (req.method !== 'GET') {

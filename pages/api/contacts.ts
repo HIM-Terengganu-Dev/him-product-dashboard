@@ -142,7 +142,24 @@ export default async function handler(
         const phone = row.phone_number; // Used for display AND as the unique ID.
         const name = row.name;
         const type = row.type; // Should contain 'Client', 'Prospect', or 'Lead'
-        const lastPurchaseDate = row.last_order_date ? new Date(row.last_order_date).toISOString().split('T')[0] : null; // Formats date to 'YYYY-MM-DD'
+        
+        // FIX: Hardcode date formatting to UTC+8 to guarantee correct date representation.
+        // The pg driver creates a JS Date object based on the server's timezone, which
+        // can cause off-by-one-day errors. By using Intl.DateTimeFormat with a fixed
+        // timezone, we ensure the output string is always correct, regardless of
+        // the server's location. We use the 'sv' (Swedish) locale as it provides
+        // the desired YYYY-MM-DD format.
+        let lastPurchaseDate = null;
+        if (row.last_order_date) {
+            const d = new Date(row.last_order_date);
+            lastPurchaseDate = new Intl.DateTimeFormat('sv', {
+                timeZone: 'Asia/Kuala_Lumpur', // UTC+8
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            }).format(d);
+        }
+
         const lastPurchaseProduct = row.last_order_product;
         const lastMarketplace = row.last_marketplace;
 

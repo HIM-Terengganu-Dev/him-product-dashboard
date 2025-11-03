@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import { LogoIcon } from './Icons';
 
 interface LoginViewProps {
   isInitialized: boolean;
@@ -47,12 +46,11 @@ const LoginView: React.FC<LoginViewProps> = ({ isInitialized, clientId, authErro
   return (
     <div className="flex items-center justify-center h-screen bg-gray-50">
       <div className="text-center p-10 bg-white rounded-2xl shadow-xl border border-gray-100 max-w-md w-full">
-        <div className="flex justify-center mb-6">
-          <LogoIcon className="h-16 w-16 text-indigo-600" />
+        <div className="flex justify-center mb-8">
+            <span className="text-4xl font-extrabold text-indigo-700">HIM Product</span>
         </div>
-        <h1 className="text-3xl font-bold text-gray-800 mb-2">Welcome to</h1>
-        <h2 className="text-4xl font-extrabold text-indigo-600 mb-8">HIM Wellness BI</h2>
-        <p className="text-gray-500 mb-8">Please sign in with your Google account to access the dashboard.</p>
+        <h1 className="text-2xl font-bold text-gray-800 mb-2">Welcome to the Dashboard</h1>
+        <p className="text-gray-500 mb-8">Please sign in with your Google account to continue.</p>
         
         {renderButtonState()}
 

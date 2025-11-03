@@ -1,6 +1,13 @@
 import { Pool } from 'pg';
 import type { NextApiRequest, NextApiResponse } from 'next';
 
+// FIX: Corrected the type for NextApiRequest to include the `body` property,
+// resolving an error that was caused by it being missing from the custom type.
+interface ApiRequest extends NextApiRequest {
+    method?: string;
+    body: any;
+}
+
 const pool = new Pool({
   connectionString: process.env.POSTGRES_URL,
   ssl: {
@@ -9,7 +16,7 @@ const pool = new Pool({
 });
 
 export default async function handler(
-  req: NextApiRequest,
+  req: ApiRequest,
   res: NextApiResponse<{ authorized: boolean } | { error: string }>
 ) {
   if (req.method !== 'POST') {

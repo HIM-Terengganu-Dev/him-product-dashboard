@@ -1,33 +1,23 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { UserCheckIcon, UserExclamationIcon, UserMinusIcon, DotsVerticalIcon, UserPlusIcon, ChevronDownIcon } from './Icons';
+import { UserCheckIcon, UserMinusIcon, DotsVerticalIcon } from './Icons';
 
-type Status = "New Client" | "Active" | "Churning" | "Churned";
+type Status = "Active" | "Inactive";
 
-interface Client {
+interface Prospect {
   id: string;
   name: string;
   phone: string;
   status: Status;
-  lastPurchaseDate: string | null;
-  lastOrderProduct: string | null;
+  lastContactDate: string | null;
 }
 
 interface Summary {
-    'New Client': number;
     'Active': number;
-    'Churning': number;
-    'Churned': number;
+    'Inactive': number;
 }
 
-interface Filters {
-    search: string;
-    startDate: string;
-    endDate: string;
-    product: string[];
-}
-
-const CLIENTS_PER_PAGE = 10;
+const PROSPECTS_PER_PAGE = 10;
 
 interface KpiCardProps {
     title: string;
@@ -63,150 +53,62 @@ const KpiCardSkeleton = () => (
     </div>
 );
 
-const MultiSelectDropdown = ({ options, selected, onChange, placeholder, disabled = false }: {
-    options: { value: string; label: string }[];
-    selected: string[];
-    onChange: (selected: string[]) => void;
-    placeholder: string;
-    disabled?: boolean;
-}) => {
-    const [isOpen, setIsOpen] = useState(false);
-    const dropdownRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-                setIsOpen(false);
-            }
-        };
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
-
-    const handleSelect = (value: string) => {
-        const newSelected = selected.includes(value)
-            ? selected.filter(item => item !== value)
-            : [...selected, value];
-        onChange(newSelected);
-    };
-    
-    const displayValue = selected.length === 0
-        ? placeholder
-        : selected.length === 1
-            ? options.find(o => o.value === selected[0])?.label ?? placeholder
-            : `${selected.length} selected`;
-
-    return (
-        <div className="relative" ref={dropdownRef}>
-            <button
-                type="button"
-                onClick={() => setIsOpen(!isOpen)}
-                disabled={disabled}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-150 ease-in-out bg-white text-left flex justify-between items-center disabled:bg-gray-100 disabled:cursor-not-allowed"
-            >
-                <span className="truncate">{displayValue}</span>
-                <ChevronDownIcon className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
-            </button>
-            {isOpen && (
-                <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg">
-                    <ul className="max-h-60 overflow-y-auto p-2">
-                        {options.map(option => (
-                            <li key={option.value}>
-                                <label className="flex items-center space-x-3 p-2 rounded-md hover:bg-gray-100 cursor-pointer">
-                                    <input
-                                        type="checkbox"
-                                        checked={selected.includes(option.value)}
-                                        onChange={() => handleSelect(option.value)}
-                                        className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                                    />
-                                    <span className="text-sm text-gray-700">{option.label}</span>
-                                </label>
-                            </li>
-                        ))}
-                    </ul>
-                </div>
-            )}
-        </div>
-    );
-};
-
 const statusInfo: { [key in Status]: { color: string; badge: string; icon: React.FC<React.SVGProps<SVGSVGElement>>; iconBg: string; } } = {
-    'New Client': { color: '#3b82f6', badge: 'bg-blue-100 text-blue-800', icon: UserPlusIcon, iconBg: 'bg-blue-500' },
     'Active': { color: '#10b981', badge: 'bg-green-100 text-green-800', icon: UserCheckIcon, iconBg: 'bg-green-500' },
-    'Churning': { color: '#f59e0b', badge: 'bg-yellow-100 text-yellow-800', icon: UserExclamationIcon, iconBg: 'bg-yellow-500' },
-    'Churned': { color: '#ef4444', badge: 'bg-red-100 text-red-800', icon: UserMinusIcon, iconBg: 'bg-red-500' },
+    'Inactive': { color: '#ef4444', badge: 'bg-red-100 text-red-800', icon: UserMinusIcon, iconBg: 'bg-red-500' },
 };
 
-const statuses: Status[] = ["New Client", "Active", "Churning", "Churned"];
+const statuses: Status[] = ["Active", "Inactive"];
 
-const ClientStatusView: React.FC = () => {
-    const [clients, setClients] = useState<Client[]>([]);
+const ProspectStatusView: React.FC = () => {
+    const [prospects, setProspects] = useState<Prospect[]>([]);
     const [summary, setSummary] = useState<Summary | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(0);
-    const [totalClients, setTotalClients] = useState(0);
+    const [totalProspects, setTotalProspects] = useState(0);
     const [activeFilter, setActiveFilter] = useState<Status | 'All'>('All');
-    const [allProducts, setAllProducts] = useState<string[]>([]);
-    const [filters, setFilters] = useState<Filters>({
-        search: '',
-        startDate: '',
-        endDate: '',
-        product: [],
-    });
+    const [searchTerm, setSearchTerm] = useState('');
 
     useEffect(() => {
-        const fetchClientStatusData = async () => {
+        const fetchProspectStatusData = async () => {
             setIsLoading(true);
             setError(null);
             try {
                 const params = new URLSearchParams({
                     page: String(currentPage),
-                    limit: String(CLIENTS_PER_PAGE),
+                    limit: String(PROSPECTS_PER_PAGE),
                     status: activeFilter,
                 });
-                if (filters.search) params.append('search', filters.search);
-                if (filters.startDate) params.append('startDate', filters.startDate);
-                if (filters.endDate) params.append('endDate', filters.endDate);
-                if (filters.product.length > 0) params.append('product', filters.product.join(','));
-
-                const response = await fetch(`/api/clients/status?${params.toString()}`);
+                if (searchTerm) params.append('search', searchTerm);
+                
+                const response = await fetch(`/api/prospects/status?${params.toString()}`);
                 if (!response.ok) {
-                    throw new Error('Failed to fetch client status data. Please check the API server.');
+                    throw new Error('Failed to fetch prospect status data. Please check the API server.');
                 }
                 const data = await response.json();
-                setClients(data.clients);
+                setProspects(data.prospects);
                 setSummary(data.summary);
                 setTotalPages(data.totalPages);
-                setTotalClients(data.totalClients);
-                setAllProducts(data.allProducts);
+                setTotalProspects(data.totalProspects);
             } catch (err) {
                 setError(err instanceof Error ? err.message : 'An unknown error occurred.');
             } finally {
                 setIsLoading(false);
             }
         };
-        fetchClientStatusData();
-    }, [currentPage, activeFilter, filters]);
+        fetchProspectStatusData();
+    }, [currentPage, activeFilter, searchTerm]);
     
     // Reset page to 1 when filter changes
     useEffect(() => {
         setCurrentPage(1);
-    }, [activeFilter, filters]);
-
-    const handleTextFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value } = e.target;
-        setFilters(prev => ({ ...prev, [name]: value }));
+    }, [activeFilter, searchTerm]);
+    
+    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setSearchTerm(e.target.value);
     };
-
-    const handleMultiSelectChange = (name: 'product', value: string[]) => {
-        setFilters(prev => ({ ...prev, [name]: value }));
-    };
-
-    const productOptions = useMemo(() => {
-        return allProducts.map(p => ({ value: p, label: p }));
-    }, [allProducts]);
 
     const chartData = useMemo(() => {
         if (!summary) return [];
@@ -216,7 +118,7 @@ const ClientStatusView: React.FC = () => {
         })).filter(item => item.value > 0);
     }, [summary]);
 
-    const totalSummaryClients = useMemo(() => {
+    const totalSummaryProspects = useMemo(() => {
         if (!summary) return 0;
         return Object.values(summary).reduce((acc, count) => acc + count, 0);
     }, [summary]);
@@ -228,7 +130,7 @@ const ClientStatusView: React.FC = () => {
     const CustomTooltip = ({ active, payload }: any) => {
         if (active && payload && payload.length) {
             const data = payload[0].payload;
-            const percentage = totalSummaryClients > 0 ? ((data.value / totalSummaryClients) * 100).toFixed(1) : 0;
+            const percentage = totalSummaryProspects > 0 ? ((data.value / totalSummaryProspects) * 100).toFixed(1) : 0;
             return (
                 <div className="bg-white p-3 rounded-lg shadow-xl border border-gray-200 z-50">
                     <div className="flex items-center mb-2">
@@ -252,42 +154,40 @@ const ClientStatusView: React.FC = () => {
         <td className="px-6 py-4 whitespace-nowrap"><div className="space-y-2"><div className="h-4 bg-gray-200 rounded w-24"></div><div className="h-3 bg-gray-200 rounded w-32"></div></div></td>
         <td className="px-6 py-4 whitespace-nowrap"><div className="h-5 bg-gray-200 rounded-full w-20"></div></td>
         <td className="px-6 py-4 whitespace-nowrap"><div className="h-4 bg-gray-200 rounded w-28"></div></td>
-        <td className="px-6 py-4 whitespace-nowrap"><div className="h-4 bg-gray-200 rounded w-24"></div></td>
         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"><div className="h-5 w-5 bg-gray-200 rounded"></div></td>
       </tr>
     );
 
     const renderTableBody = () => {
-        if (isLoading && clients.length === 0) {
-            return Array.from({ length: CLIENTS_PER_PAGE }).map((_, index) => <SkeletonRow key={index} />);
+        if (isLoading && prospects.length === 0) {
+            return Array.from({ length: PROSPECTS_PER_PAGE }).map((_, index) => <SkeletonRow key={index} />);
         }
         if (error) {
-            return <tr><td colSpan={5} className="text-center py-10 text-red-500 font-medium">{error}</td></tr>;
+            return <tr><td colSpan={4} className="text-center py-10 text-red-500 font-medium">{error}</td></tr>;
         }
-        if (clients.length === 0) {
-            return <tr><td colSpan={5} className="text-center py-10 text-gray-500">No clients found for this filter.</td></tr>;
+        if (prospects.length === 0) {
+            return <tr><td colSpan={4} className="text-center py-10 text-gray-500">No prospects found for this filter.</td></tr>;
         }
-        return clients.map((client) => (
-            <tr key={client.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap"><div><div className="text-sm font-medium text-gray-900">{client.name}</div><div className="text-sm text-gray-500">{client.phone}</div></div></td>
-                <td className="px-6 py-4 whitespace-nowrap"><span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusInfo[client.status].badge}`}>{client.status}</span></td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{client.lastPurchaseDate || 'N/A'}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{client.lastOrderProduct || 'N/A'}</td>
+        return prospects.map((prospect) => (
+            <tr key={prospect.id} className="hover:bg-gray-50">
+                <td className="px-6 py-4 whitespace-nowrap"><div><div className="text-sm font-medium text-gray-900">{prospect.name}</div><div className="text-sm text-gray-500">{prospect.phone}</div></div></td>
+                <td className="px-6 py-4 whitespace-nowrap"><span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusInfo[prospect.status].badge}`}>{prospect.status}</span></td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{prospect.lastContactDate || 'N/A'}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"><button className="text-gray-400 hover:text-indigo-600"><DotsVerticalIcon className="w-5 h-5"/></button></td>
             </tr>
         ));
     };
     
     const Pagination = () => {
-        const startItem = totalClients > 0 ? (currentPage - 1) * CLIENTS_PER_PAGE + 1 : 0;
-        const endItem = Math.min(currentPage * CLIENTS_PER_PAGE, totalClients);
+        const startItem = totalProspects > 0 ? (currentPage - 1) * PROSPECTS_PER_PAGE + 1 : 0;
+        const endItem = Math.min(currentPage * PROSPECTS_PER_PAGE, totalProspects);
     
         return (
             <div className="py-3 px-4 flex items-center justify-between border-t border-gray-200">
                 <div>
                     <p className="text-sm text-gray-700">
                         Showing <span className="font-medium">{startItem}</span> to <span className="font-medium">{endItem}</span> of{' '}
-                        <span className="font-medium">{totalClients}</span> results
+                        <span className="font-medium">{totalProspects}</span> results
                     </p>
                 </div>
                 <div className="flex-1 flex justify-end">
@@ -300,9 +200,9 @@ const ClientStatusView: React.FC = () => {
 
   return (
     <div className="space-y-8">
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-            <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-md border border-gray-100">
-                <h3 className="text-lg font-semibold text-gray-800">Client Status Distribution</h3>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100">
+                <h3 className="text-lg font-semibold text-gray-800">Prospect Status Distribution</h3>
                 {isLoading && !summary ? (
                     <div className="animate-pulse flex items-center justify-center h-64">
                         <div className="w-48 h-48 bg-gray-200 rounded-full"></div>
@@ -330,7 +230,7 @@ const ClientStatusView: React.FC = () => {
                                     ))}
                                 </Pie>
                                 <Tooltip
-                                    wrapperStyle={{ zIndex: 1000, background: 'red' }}
+                                    wrapperStyle={{ zIndex: 1000 }}
                                     content={<CustomTooltip />}
                                     cursor={{ fill: 'transparent' }}
                                 />
@@ -342,17 +242,15 @@ const ClientStatusView: React.FC = () => {
                             </PieChart>
                         </ResponsiveContainer>
                          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
-                            <span className="text-3xl font-bold text-gray-800">{totalSummaryClients.toLocaleString()}</span>
-                            <p className="text-sm text-gray-500">Total Clients</p>
+                            <span className="text-3xl font-bold text-gray-800">{totalSummaryProspects.toLocaleString()}</span>
+                            <p className="text-sm text-gray-500">Total Prospects</p>
                         </div>
                     </div>
                 )}
             </div>
-            <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 content-center">
                 {isLoading && !summary ? (
                     <>
-                        <KpiCardSkeleton />
-                        <KpiCardSkeleton />
                         <KpiCardSkeleton />
                         <KpiCardSkeleton />
                     </>
@@ -375,7 +273,7 @@ const ClientStatusView: React.FC = () => {
         <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
             <div className="p-4 sm:p-6 border-b border-gray-200">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
-                    <h3 className="text-lg font-semibold text-gray-800 mb-2 sm:mb-0">Client Details ({totalClients})</h3>
+                    <h3 className="text-lg font-semibold text-gray-800 mb-2 sm:mb-0">Prospect Details ({totalProspects})</h3>
                      <div className="flex flex-wrap gap-2">
                         <button onClick={() => handleFilterClick('All')} className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${activeFilter === 'All' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>All</button>
                         {statuses.map(status => (
@@ -384,44 +282,15 @@ const ClientStatusView: React.FC = () => {
                     </div>
                 </div>
             </div>
-            {/* Filter Section */}
-            <div className="px-4 sm:px-6 py-4 border-b border-gray-200 bg-gray-50/50">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+             <div className="px-4 sm:px-6 py-4 border-b border-gray-200 bg-gray-50/50">
+                 <div className="sm:max-w-xs">
                     <input
                         type="text"
                         name="search"
                         placeholder="Search by Name/Phone..."
-                        value={filters.search}
-                        onChange={handleTextFilterChange}
+                        value={searchTerm}
+                        onChange={handleSearchChange}
                         className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-150 ease-in-out"
-                    />
-                    <div className="flex items-center space-x-2 col-span-1 lg:col-span-2">
-                        <label htmlFor="startDate" className="text-sm font-medium text-gray-700 shrink-0">Last Purchase:</label>
-                        <input
-                            type="date"
-                            id="startDate"
-                            name="startDate"
-                            value={filters.startDate}
-                            onChange={handleTextFilterChange}
-                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
-                            title="Start Date"
-                        />
-                         <span className="text-gray-500">-</span>
-                        <input
-                            type="date"
-                            name="endDate"
-                            value={filters.endDate}
-                            onChange={handleTextFilterChange}
-                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
-                            title="End Date"
-                        />
-                    </div>
-                    <MultiSelectDropdown
-                        options={productOptions}
-                        selected={filters.product}
-                        onChange={(selected) => handleMultiSelectChange('product', selected)}
-                        placeholder="All Last Purchase Product"
-                        disabled={isLoading}
                     />
                 </div>
             </div>
@@ -429,10 +298,9 @@ const ClientStatusView: React.FC = () => {
                 <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                         <tr>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Client</th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Prospect</th>
                             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Purchase</th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Product</th>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Contact</th>
                             <th scope="col" className="relative px-6 py-3"><span className="sr-only">Actions</span></th>
                         </tr>
                     </thead>
@@ -447,4 +315,4 @@ const ClientStatusView: React.FC = () => {
   );
 };
 
-export default ClientStatusView;
+export default ProspectStatusView;

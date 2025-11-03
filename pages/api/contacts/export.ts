@@ -1,6 +1,13 @@
 import { Pool } from 'pg';
 import type { NextApiRequest, NextApiResponse } from 'next';
 
+// FIX: Corrected the type for NextApiRequest to include the `query` property,
+// resolving an error that was caused by it being missing from the custom type.
+interface ApiRequest extends NextApiRequest {
+    method?: string;
+    query: { [key: string]: string | string[] | undefined };
+}
+
 const pool = new Pool({
   connectionString: process.env.POSTGRES_URL,
   ssl: {
@@ -34,7 +41,7 @@ function convertToCSV(data: any[]): string {
 }
 
 export default async function handler(
-  req: NextApiRequest,
+  req: ApiRequest,
   res: NextApiResponse<string | { error: string }>
 ) {
   if (req.method !== 'GET') {
