@@ -198,6 +198,26 @@ const ProspectStatusView: React.FC = () => {
         );
     };
 
+    const renderCustomLegend = () => {
+        return (
+            <div className="flex justify-center flex-wrap gap-x-4 gap-y-2 mt-4 text-xs">
+                {statuses.map((status) => {
+                    const isActive = activeFilter === 'All' || activeFilter === status;
+                    return (
+                        <div
+                            key={status}
+                            onClick={() => handleFilterClick(status)}
+                            className={`flex items-center cursor-pointer transition-all duration-200 rounded-full px-3 py-1 ${isActive ? 'opacity-100 bg-gray-100' : 'opacity-50 hover:opacity-100'}`}
+                        >
+                            <span className="w-2.5 h-2.5 rounded-full mr-2 shrink-0" style={{ backgroundColor: statusInfo[status].color }}></span>
+                            <span className="text-gray-700 font-medium">{status}</span>
+                        </div>
+                    );
+                })}
+            </div>
+        );
+    };
+
   return (
     <div className="space-y-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -234,11 +254,7 @@ const ProspectStatusView: React.FC = () => {
                                     content={<CustomTooltip />}
                                     cursor={{ fill: 'transparent' }}
                                 />
-                                <Legend
-                                    iconType="circle"
-                                    onClick={(data) => handleFilterClick(data.value as Status)}
-                                    formatter={(value) => <span className={`ml-2 cursor-pointer ${activeFilter === value || activeFilter === 'All' ? 'text-gray-700' : 'text-gray-400'}`}>{value}</span>}
-                                />
+                                <Legend content={renderCustomLegend} />
                             </PieChart>
                         </ResponsiveContainer>
                          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">

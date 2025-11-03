@@ -148,13 +148,13 @@ const ClientStatusView: React.FC = () => {
     const [totalPages, setTotalPages] = useState(0);
     const [totalClients, setTotalClients] = useState(0);
     const [activeFilter, setActiveFilter] = useState<Status | 'All'>('All');
-    const [allProducts, setAllProducts] = useState<string[]>([]);
     const [filters, setFilters] = useState<Filters>({
         search: '',
         startDate: '',
         endDate: '',
         product: [],
     });
+    const [allProducts, setAllProducts] = useState<string[]>([]);
 
     useEffect(() => {
         const fetchClientStatusData = async () => {
@@ -189,24 +189,19 @@ const ClientStatusView: React.FC = () => {
         };
         fetchClientStatusData();
     }, [currentPage, activeFilter, filters]);
-    
-    // Reset page to 1 when filter changes
+
     useEffect(() => {
         setCurrentPage(1);
     }, [activeFilter, filters]);
 
-    const handleTextFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
-        setFilters(prev => ({ ...prev, [name]: value }));
+        setFilters(prev => ({...prev, [name]: value }));
     };
 
-    const handleMultiSelectChange = (name: 'product', value: string[]) => {
-        setFilters(prev => ({ ...prev, [name]: value }));
+    const handleProductFilterChange = (products: string[]) => {
+        setFilters(prev => ({...prev, product: products }));
     };
-
-    const productOptions = useMemo(() => {
-        return allProducts.map(p => ({ value: p, label: p }));
-    }, [allProducts]);
 
     const chartData = useMemo(() => {
         if (!summary) return [];
@@ -220,11 +215,15 @@ const ClientStatusView: React.FC = () => {
         if (!summary) return 0;
         return Object.values(summary).reduce((acc, count) => acc + count, 0);
     }, [summary]);
-
+    
     const handleFilterClick = (status: Status | 'All') => {
         setActiveFilter(status);
     };
     
+    const productOptions = useMemo(() => {
+        return allProducts.map(p => ({ value: p, label: p }));
+    }, [allProducts]);
+
     const CustomTooltip = ({ active, payload }: any) => {
         if (active && payload && payload.length) {
             const data = payload[0].payload;
@@ -246,13 +245,13 @@ const ClientStatusView: React.FC = () => {
         }
         return null;
     };
-
+    
     const SkeletonRow = () => (
       <tr className="animate-pulse">
         <td className="px-6 py-4 whitespace-nowrap"><div className="space-y-2"><div className="h-4 bg-gray-200 rounded w-24"></div><div className="h-3 bg-gray-200 rounded w-32"></div></div></td>
         <td className="px-6 py-4 whitespace-nowrap"><div className="h-5 bg-gray-200 rounded-full w-20"></div></td>
         <td className="px-6 py-4 whitespace-nowrap"><div className="h-4 bg-gray-200 rounded w-28"></div></td>
-        <td className="px-6 py-4 whitespace-nowrap"><div className="h-4 bg-gray-200 rounded w-24"></div></td>
+        <td className="px-6 py-4 whitespace-nowrap"><div className="h-4 bg-gray-200 rounded w-36"></div></td>
         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"><div className="h-5 w-5 bg-gray-200 rounded"></div></td>
       </tr>
     );
@@ -284,12 +283,7 @@ const ClientStatusView: React.FC = () => {
     
         return (
             <div className="py-3 px-4 flex items-center justify-between border-t border-gray-200">
-                <div>
-                    <p className="text-sm text-gray-700">
-                        Showing <span className="font-medium">{startItem}</span> to <span className="font-medium">{endItem}</span> of{' '}
-                        <span className="font-medium">{totalClients}</span> results
-                    </p>
-                </div>
+                <div><p className="text-sm text-gray-700">Showing <span className="font-medium">{startItem}</span> to <span className="font-medium">{endItem}</span> of{' '}<span className="font-medium">{totalClients}</span> results</p></div>
                 <div className="flex-1 flex justify-end">
                     <button onClick={() => setCurrentPage(p => Math.max(p - 1, 1))} disabled={currentPage === 1 || isLoading} className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">Previous</button>
                     <button onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))} disabled={currentPage === totalPages || isLoading} className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">Next</button>
@@ -298,153 +292,164 @@ const ClientStatusView: React.FC = () => {
         );
     };
 
-  return (
-    <div className="space-y-8">
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-            <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-md border border-gray-100">
-                <h3 className="text-lg font-semibold text-gray-800">Client Status Distribution</h3>
-                {isLoading && !summary ? (
-                    <div className="animate-pulse flex items-center justify-center h-64">
-                        <div className="w-48 h-48 bg-gray-200 rounded-full"></div>
-                    </div>
-                ) : error ? (
-                    <div className="text-red-500 text-center py-10">Could not load chart data.</div>
-                ) : (
-                    <div className="relative w-full h-64">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                                <Pie
-                                    data={chartData as any}
-                                    cx="50%"
-                                    cy="50%"
-                                    innerRadius={70}
-                                    outerRadius={100}
-                                    fill="#8884d8"
-                                    paddingAngle={5}
-                                    dataKey="value"
-                                    nameKey="name"
-                                    cornerRadius={5}
-                                >
-                                    {chartData.map((entry) => (
-                                        <Cell key={`cell-${entry.name}`} fill={statusInfo[entry.name as Status].color} />
-                                    ))}
-                                </Pie>
-                                <Tooltip
-                                    wrapperStyle={{ zIndex: 1000, background: 'red' }}
-                                    content={<CustomTooltip />}
-                                    cursor={{ fill: 'transparent' }}
-                                />
-                                <Legend
-                                    iconType="circle"
-                                    onClick={(data) => handleFilterClick(data.value as Status)}
-                                    formatter={(value) => <span className={`ml-2 cursor-pointer ${activeFilter === value || activeFilter === 'All' ? 'text-gray-700' : 'text-gray-400'}`}>{value}</span>}
-                                />
-                            </PieChart>
-                        </ResponsiveContainer>
-                         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
-                            <span className="text-3xl font-bold text-gray-800">{totalSummaryClients.toLocaleString()}</span>
-                            <p className="text-sm text-gray-500">Total Clients</p>
+    const renderCustomLegend = () => {
+        return (
+            <div className="flex justify-center flex-wrap gap-x-4 gap-y-2 mt-4 text-xs">
+                {statuses.map((status) => {
+                    const isActive = activeFilter === 'All' || activeFilter === status;
+                    return (
+                        <div
+                            key={status}
+                            onClick={() => handleFilterClick(status)}
+                            className={`flex items-center cursor-pointer transition-all duration-200 rounded-full px-3 py-1 ${isActive ? 'opacity-100 bg-gray-100' : 'opacity-50 hover:opacity-100'}`}
+                        >
+                            <span className="w-2.5 h-2.5 rounded-full mr-2 shrink-0" style={{ backgroundColor: statusInfo[status].color }}></span>
+                            <span className="text-gray-700 font-medium">{status}</span>
+                        </div>
+                    );
+                })}
+            </div>
+        );
+    };
+
+    return (
+        <div className="space-y-8">
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-md border border-gray-100">
+                    <h3 className="text-lg font-semibold text-gray-800">Client Status Distribution</h3>
+                    {isLoading && !summary ? (
+                        <div className="animate-pulse flex items-center justify-center h-64">
+                            <div className="w-48 h-48 bg-gray-200 rounded-full"></div>
+                        </div>
+                    ) : error ? (
+                        <div className="text-red-500 text-center py-10">Could not load chart data.</div>
+                    ) : (
+                        <div className="relative w-full h-64">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <PieChart>
+                                    <Pie
+                                        data={chartData as any}
+                                        cx="50%"
+                                        cy="50%"
+                                        innerRadius={70}
+                                        outerRadius={100}
+                                        fill="#8884d8"
+                                        paddingAngle={5}
+                                        dataKey="value"
+                                        nameKey="name"
+                                        cornerRadius={5}
+                                    >
+                                        {chartData.map((entry) => (
+                                            <Cell key={`cell-${entry.name}`} fill={statusInfo[entry.name as Status].color} />
+                                        ))}
+                                    </Pie>
+                                    <Tooltip
+                                        wrapperStyle={{ zIndex: 1000 }}
+                                        content={<CustomTooltip />}
+                                        cursor={{ fill: 'transparent' }}
+                                    />
+                                    <Legend content={renderCustomLegend} />
+                                </PieChart>
+                            </ResponsiveContainer>
+                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
+                                <span className="text-3xl font-bold text-gray-800">{totalSummaryClients.toLocaleString()}</span>
+                                <p className="text-sm text-gray-500">Total Clients</p>
+                            </div>
+                        </div>
+                    )}
+                </div>
+                <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {isLoading && !summary ? (
+                        <>
+                            <KpiCardSkeleton />
+                            <KpiCardSkeleton />
+                            <KpiCardSkeleton />
+                            <KpiCardSkeleton />
+                        </>
+                    ) : (
+                        statuses.map(status => (
+                            <KpiCard
+                                key={status}
+                                title={status}
+                                value={(summary?.[status] || 0).toLocaleString()}
+                                icon={statusInfo[status].icon}
+                                iconColor={statusInfo[status].iconBg}
+                                onClick={() => handleFilterClick(status)}
+                                isActive={activeFilter === status}
+                            />
+                        ))
+                    )}
+                </div>
+            </div>
+
+            <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
+                <div className="p-4 sm:p-6 border-b border-gray-200">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
+                        <h3 className="text-lg font-semibold text-gray-800 mb-2 sm:mb-0">Client Status Details ({totalClients})</h3>
+                        <div className="flex flex-wrap gap-2">
+                           <button onClick={() => handleFilterClick('All')} className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${activeFilter === 'All' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>All</button>
+                            {statuses.map(status => (
+                                <button key={status} onClick={() => handleFilterClick(status)} className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${activeFilter === status ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{status}</button>
+                            ))}
                         </div>
                     </div>
-                )}
-            </div>
-            <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-6">
-                {isLoading && !summary ? (
-                    <>
-                        <KpiCardSkeleton />
-                        <KpiCardSkeleton />
-                        <KpiCardSkeleton />
-                        <KpiCardSkeleton />
-                    </>
-                ) : (
-                    statuses.map(status => (
-                        <KpiCard 
-                            key={status}
-                            title={status}
-                            value={(summary?.[status] || 0).toLocaleString()} 
-                            icon={statusInfo[status].icon} 
-                            iconColor={statusInfo[status].iconBg}
-                            onClick={() => handleFilterClick(status)} 
-                            isActive={activeFilter === status} 
+                </div>
+                {/* Filter Section */}
+                <div className="px-4 sm:px-6 py-4 border-b border-gray-200 bg-gray-50/50">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <input
+                           type="text"
+                           name="search"
+                           placeholder="Search by Name/Phone..."
+                           value={filters.search}
+                           onChange={handleFilterChange}
+                           className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-150 ease-in-out"
+                       />
+                       <MultiSelectDropdown
+                            options={productOptions}
+                            selected={filters.product}
+                            onChange={handleProductFilterChange}
+                            placeholder="Filter by Product"
+                            disabled={isLoading}
                         />
-                    ))
-                )}
-            </div>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
-            <div className="p-4 sm:p-6 border-b border-gray-200">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
-                    <h3 className="text-lg font-semibold text-gray-800 mb-2 sm:mb-0">Client Details ({totalClients})</h3>
-                     <div className="flex flex-wrap gap-2">
-                        <button onClick={() => handleFilterClick('All')} className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${activeFilter === 'All' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>All</button>
-                        {statuses.map(status => (
-                          <button key={status} onClick={() => handleFilterClick(status)} className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${activeFilter === status ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{status}</button>
-                        ))}
+                        <input
+                           type="date"
+                           name="startDate"
+                           value={filters.startDate}
+                           onChange={handleFilterChange}
+                           className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-150 ease-in-out"
+                           title="Start Date"
+                       />
+                       <input
+                           type="date"
+                           name="endDate"
+                           value={filters.endDate}
+                           onChange={handleFilterChange}
+                           className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-150 ease-in-out"
+                           title="End Date"
+                       />
                     </div>
                 </div>
-            </div>
-            {/* Filter Section */}
-            <div className="px-4 sm:px-6 py-4 border-b border-gray-200 bg-gray-50/50">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <input
-                        type="text"
-                        name="search"
-                        placeholder="Search by Name/Phone..."
-                        value={filters.search}
-                        onChange={handleTextFilterChange}
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-150 ease-in-out"
-                    />
-                    <div className="flex items-center space-x-2 col-span-1 lg:col-span-2">
-                        <label htmlFor="startDate" className="text-sm font-medium text-gray-700 shrink-0">Last Purchase:</label>
-                        <input
-                            type="date"
-                            id="startDate"
-                            name="startDate"
-                            value={filters.startDate}
-                            onChange={handleTextFilterChange}
-                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
-                            title="Start Date"
-                        />
-                         <span className="text-gray-500">-</span>
-                        <input
-                            type="date"
-                            name="endDate"
-                            value={filters.endDate}
-                            onChange={handleTextFilterChange}
-                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
-                            title="End Date"
-                        />
-                    </div>
-                    <MultiSelectDropdown
-                        options={productOptions}
-                        selected={filters.product}
-                        onChange={(selected) => handleMultiSelectChange('product', selected)}
-                        placeholder="All Last Purchase Product"
-                        disabled={isLoading}
-                    />
+                <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                            <tr>
+                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Client</th>
+                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Purchase Date</th>
+                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Purchase Product</th>
+                                <th scope="col" className="relative px-6 py-3"><span className="sr-only">Actions</span></th>
+                            </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                            {renderTableBody()}
+                        </tbody>
+                    </table>
                 </div>
+                {!error && totalPages > 0 && <Pagination />}
             </div>
-            <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                        <tr>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Client</th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Purchase</th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Product</th>
-                            <th scope="col" className="relative px-6 py-3"><span className="sr-only">Actions</span></th>
-                        </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                        {renderTableBody()}
-                    </tbody>
-                </table>
-            </div>
-            {!error && totalPages > 0 && <Pagination />}
         </div>
-    </div>
-  );
+    );
 };
 
 export default ClientStatusView;

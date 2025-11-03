@@ -19,28 +19,47 @@ interface Contact {
   lastMarketplace: string | null;
 }
 
-interface PaginatedResponse {
-  contacts: Contact[];
-  totalContacts: number;
-  totalPages: number;
+interface TypeSummaryData {
+  type: ContactType;
+  count: number;
 }
 
-// FIX: Correct the type for NextApiRequest which appears to be missing properties like `method` and `query`
-// in the current environment. This can happen due to conflicting types or configuration issues.
+interface MarketplaceSummaryData {
+  marketplace: string;
+  count: number;
+}
+
+interface SummaryData {
+    typeSummary: TypeSummaryData[];
+    marketplaceSummary: MarketplaceSummaryData[];
+    totalContacts: number;
+}
+
+interface FilterOptions {
+    allMarketplaces: string[];
+    allProducts: string[];
+}
+
+interface UnifiedResponse {
+  contacts: Contact[];
+  totalContactsInTable: number;
+  totalPages: number;
+  summary: SummaryData;
+  filterOptions: FilterOptions;
+}
+
 interface ApiRequest extends NextApiRequest {
   method?: string;
   query: { [key: string]: string | string[] | undefined };
 }
 
-// Create a new connection pool.
-// The Pool will read the POSTGRES_URL environment variable automatically.
 const pool = new Pool({
   connectionString: process.env.POSTGRES_URL,
 });
 
 export default async function handler(
   req: ApiRequest,
-  res: NextApiResponse<PaginatedResponse | { error: string }>
+  res: NextApiResponse<UnifiedResponse | { error: string }>
 ) {
   if (req.method !== 'GET') {
     res.setHeader('Allow', ['GET']);
@@ -117,7 +136,8 @@ export default async function handler(
   try {
     const client = await pool.connect();
     try {
-      const dataQuery = client.query(`
+      // Main data query
+      const dataPromise = client.query(`
           SELECT *, COUNT(*) OVER() as total_count
           FROM ${baseTable}
           ${whereString}
@@ -126,39 +146,58 @@ export default async function handler(
         [...queryParams, limit, offset]
       );
       
-      const dataResult = await dataQuery;
+      // Summary queries
+      const typeSummaryPromise = client.query(`SELECT type, COUNT(*) as count FROM ${baseTable} ${whereString} GROUP BY type`, queryParams);
+      const marketplaceSummaryPromise = client.query(`SELECT TRIM(last_marketplace) as marketplace, COUNT(*) as count FROM ${baseTable} ${whereString ? `${whereString} AND` : 'WHERE'} last_marketplace IS NOT NULL AND TRIM(last_marketplace) <> '' GROUP BY TRIM(last_marketplace) ORDER BY count DESC`, queryParams);
+      const totalContactsPromise = client.query(`SELECT COUNT(*) as count FROM ${baseTable} ${whereString}`, queryParams);
+      const allMarketplacesPromise = client.query(`SELECT DISTINCT TRIM(last_marketplace) as marketplace FROM ${baseTable} WHERE last_marketplace IS NOT NULL AND TRIM(last_marketplace) <> '' ORDER BY marketplace ASC`);
+      const allProductsPromise = client.query(`SELECT DISTINCT TRIM(last_order_product) as product FROM ${baseTable} WHERE last_order_product IS NOT NULL AND TRIM(last_order_product) <> '' ORDER BY product ASC`);
 
-      const totalContacts = dataResult.rows.length > 0 ? parseInt(dataResult.rows[0].total_count, 10) : 0;
-      const totalPages = Math.ceil(totalContacts / limit);
-      
+      const [dataResult, typeSummaryResult, marketplaceSummaryResult, totalContactsResult, allMarketplacesResult, allProductsResult] = await Promise.all([dataPromise, typeSummaryPromise, marketplaceSummaryPromise, totalContactsPromise, allMarketplacesPromise, allProductsPromise]);
+
+      // Process contacts for table
+      const totalContactsInTable = dataResult.rows.length > 0 ? parseInt(dataResult.rows[0].total_count, 10) : 0;
+      const totalPages = Math.ceil(totalContactsInTable / limit);
       const contacts: Contact[] = dataResult.rows.map(row => {
         let lastPurchaseDate: string | null = null;
         if (row.last_order_date) {
             const d = new Date(row.last_order_date);
-            lastPurchaseDate = new Intl.DateTimeFormat('sv', {
-                timeZone: 'Asia/Kuala_Lumpur',
-                year: 'numeric', month: '2-digit', day: '2-digit'
-            }).format(d);
+            lastPurchaseDate = new Intl.DateTimeFormat('sv', { timeZone: 'Asia/Kuala_Lumpur', year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
         }
         const validTypes: ContactType[] = ['Client', 'Prospect', 'Lead'];
         let contactType: ContactType = 'Lead';
         if (typeof row.type === 'string') {
-          const normalizedType = row.type.trim();
-          const titleCaseType = normalizedType.charAt(0).toUpperCase() + normalizedType.slice(1).toLowerCase();
-          if (validTypes.includes(titleCaseType as ContactType)) {
-            contactType = titleCaseType as ContactType;
-          }
+          const titleCaseType = row.type.charAt(0).toUpperCase() + row.type.slice(1).toLowerCase();
+          if (validTypes.includes(titleCaseType as ContactType)) contactType = titleCaseType as ContactType;
         }
         return {
-          id: String(row.phone_number || ''),
-          name: row.name || 'N/A', phone: row.phone_number || 'N/A', type: contactType,
+          id: String(row.phone_number || ''), name: row.name || 'N/A', phone: row.phone_number || 'N/A', type: contactType,
           lastPurchaseDate: lastPurchaseDate, lastPurchaseProduct: row.last_order_product || null, lastMarketplace: row.last_marketplace || null,
         };
       });
 
-      const responseData: PaginatedResponse = {
-        contacts, totalContacts, totalPages,
+      // Process summary data
+      const totalSummaryContacts = parseInt(totalContactsResult.rows[0].count, 10) || 0;
+      const validTypes: ContactType[] = ['Client', 'Prospect', 'Lead'];
+      const typeSummaryMap = new Map<ContactType, number>(validTypes.map(t => [t, 0]));
+      typeSummaryResult.rows.forEach(row => {
+          if (typeof row.type === 'string') {
+            const titleCaseType = row.type.charAt(0).toUpperCase() + row.type.slice(1).toLowerCase();
+            if (validTypes.includes(titleCaseType as ContactType)) {
+                typeSummaryMap.set(titleCaseType as ContactType, parseInt(row.count, 10));
+            }
+          }
+      });
+      const typeSummary: TypeSummaryData[] = Array.from(typeSummaryMap.entries()).map(([type, count]) => ({ type, count }));
+      const marketplaceSummary: MarketplaceSummaryData[] = marketplaceSummaryResult.rows.map(row => ({ marketplace: row.marketplace, count: parseInt(row.count, 10) }));
+
+      const summary: SummaryData = { typeSummary, marketplaceSummary, totalContacts: totalSummaryContacts };
+      const filterOptions: FilterOptions = {
+        allMarketplaces: allMarketplacesResult.rows.map(row => row.marketplace),
+        allProducts: allProductsResult.rows.map(row => row.product)
       };
+
+      const responseData: UnifiedResponse = { contacts, totalContactsInTable, totalPages, summary, filterOptions };
       
       res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
       res.status(200).json(responseData);
