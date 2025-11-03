@@ -149,7 +149,7 @@ export default async function handler(
         // timezone, we ensure the output string is always correct, regardless of
         // the server's location. We use the 'sv' (Swedish) locale as it provides
         // the desired YYYY-MM-DD format.
-        let lastPurchaseDate = null;
+        let lastPurchaseDate: string | null = null;
         if (row.last_order_date) {
             const d = new Date(row.last_order_date);
             lastPurchaseDate = new Intl.DateTimeFormat('sv', {

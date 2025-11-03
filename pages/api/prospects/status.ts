@@ -115,7 +115,7 @@ export default async function handler(
         const result = await client.query(dataQuery, limitOffsetParams);
 
         const prospects: Prospect[] = result.rows.map(row => {
-            let lastContactDate = null;
+            let lastContactDate: string | null = null;
             if (row.last_order_date) {
                 const d = new Date(row.last_order_date);
                 lastContactDate = new Intl.DateTimeFormat('sv', {

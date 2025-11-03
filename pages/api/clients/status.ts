@@ -144,7 +144,7 @@ export default async function handler(
         const result = await client.query(dataQuery, limitOffsetParams);
 
         const clients: Client[] = result.rows.map(row => {
-            let lastPurchaseDate = null;
+            let lastPurchaseDate: string | null = null;
             if (row.last_order_date) {
                 const d = new Date(row.last_order_date);
                 lastPurchaseDate = new Intl.DateTimeFormat('sv', {
