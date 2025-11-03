@@ -24,7 +24,7 @@ interface MarketplaceSummaryData {
     count: number;
 }
 
-interface DashboardStats {
+interface SummaryData {
     typeSummary: TypeSummaryData[];
     marketplaceSummary: MarketplaceSummaryData[];
     totalContacts: number;
@@ -151,12 +151,9 @@ const MultiSelectDropdown = ({ options, selected, onChange, placeholder, disable
 
 const CrmView: React.FC = () => {
   const [contacts, setContacts] = useState<Contact[]>([]);
-  const [isContactsLoading, setIsContactsLoading] = useState(true);
-  const [contactsError, setContactsError] = useState<string | null>(null);
-  
-  const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null);
-  const [isStatsLoading, setIsStatsLoading] = useState(true);
-  const [statsError, setStatsError] = useState<string | null>(null);
+  const [summaryData, setSummaryData] = useState<SummaryData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
@@ -174,95 +171,64 @@ const CrmView: React.FC = () => {
     endDate: ''
   });
 
-  const summaryData = useMemo(() => dashboardStats?.typeSummary || [], [dashboardStats]);
-  const marketplaceData = useMemo(() => dashboardStats?.marketplaceSummary || [], [dashboardStats]);
+  const typeSummary = useMemo(() => summaryData?.typeSummary || [], [summaryData]);
+  const marketplaceSummary = useMemo(() => summaryData?.marketplaceSummary || [], [summaryData]);
 
   useEffect(() => {
-    if (!isStatsLoading && marketplaceData.length > 0) {
-        setActiveMarketplaces(new Set(marketplaceData.map(item => item.marketplace)));
+    if (!isLoading && marketplaceSummary.length > 0) {
+        setActiveMarketplaces(new Set(marketplaceSummary.map(item => item.marketplace)));
     }
-  }, [isStatsLoading, marketplaceData]);
+  }, [isLoading, marketplaceSummary]);
 
-  const filteredSummaryData = useMemo(() => {
-    return summaryData.filter(item => activeSegments.has(item.type));
-  }, [summaryData, activeSegments]);
+  const filteredTypeSummary = useMemo(() => {
+    return typeSummary.filter(item => activeSegments.has(item.type));
+  }, [typeSummary, activeSegments]);
 
-  const filteredMarketplaceData = useMemo(() => {
-    return marketplaceData.filter(item => activeMarketplaces.has(item.marketplace));
-  }, [marketplaceData, activeMarketplaces]);
+  const filteredMarketplaceSummary = useMemo(() => {
+    return marketplaceSummary.filter(item => activeMarketplaces.has(item.marketplace));
+  }, [marketplaceSummary, activeMarketplaces]);
 
   const totalContactsSummary = useMemo(() => {
-    return filteredSummaryData.reduce((acc, item) => acc + item.count, 0);
-  }, [filteredSummaryData]);
+    return filteredTypeSummary.reduce((acc, item) => acc + item.count, 0);
+  }, [filteredTypeSummary]);
 
   const totalMarketplaceContacts = useMemo(() => {
-    return filteredMarketplaceData.reduce((acc, item) => acc + item.count, 0);
-  }, [filteredMarketplaceData]);
+    return filteredMarketplaceSummary.reduce((acc, item) => acc + item.count, 0);
+  }, [filteredMarketplaceSummary]);
   
   const topSegments = useMemo(() => {
-    if (!filteredSummaryData || filteredSummaryData.length === 0) return [];
-    return filteredSummaryData
+    if (!filteredTypeSummary || filteredTypeSummary.length === 0) return [];
+    return filteredTypeSummary
         .slice() 
         .sort((a, b) => b.count - a.count)
         .slice(0, 3);
-  }, [filteredSummaryData]);
+  }, [filteredTypeSummary]);
   
   const topMarketplaces = useMemo(() => {
-    if (!filteredMarketplaceData || filteredMarketplaceData.length === 0) return [];
-    return filteredMarketplaceData
+    if (!filteredMarketplaceSummary || filteredMarketplaceSummary.length === 0) return [];
+    return filteredMarketplaceSummary
       .slice()
       .sort((a, b) => b.count - a.count)
       .slice(0, 3);
-  }, [filteredMarketplaceData]);
+  }, [filteredMarketplaceSummary]);
 
   const marketplaceColorMap = useMemo(() => {
     const map = new Map<string, string>();
-    (dashboardStats?.marketplaceSummary || []).forEach((item, index) => {
+    (summaryData?.marketplaceSummary || []).forEach((item, index) => {
         map.set(item.marketplace, MARKETPLACE_COLORS[index % MARKETPLACE_COLORS.length]);
     });
     return map;
-  }, [dashboardStats]);
+  }, [summaryData]);
 
   const clientCount = useMemo(() => {
-    const clientData = summaryData.find(d => d.type === 'Client');
+    const clientData = typeSummary.find(d => d.type === 'Client');
     return clientData ? clientData.count.toLocaleString() : '0';
-  }, [summaryData]);
+  }, [typeSummary]);
 
   const prospectCount = useMemo(() => {
-      const prospectData = summaryData.find(d => d.type === 'Prospect');
+      const prospectData = typeSummary.find(d => d.type === 'Prospect');
       return prospectData ? prospectData.count.toLocaleString() : '0';
-  }, [summaryData]);
-
-   useEffect(() => {
-    const fetchDashboardStats = async () => {
-        setIsStatsLoading(true);
-        setStatsError(null);
-        try {
-            const params = new URLSearchParams();
-            Object.entries(filters).forEach(([key, value]) => {
-                if (Array.isArray(value)) {
-                    if (value.length > 0) {
-                        params.append(key, value.join(','));
-                    }
-                } else if (value) {
-                    params.append(key, value as string);
-                }
-            });
-
-            const response = await fetch(`/api/contacts/summary?${params.toString()}`);
-            if(!response.ok) throw new Error('Failed to fetch dashboard data.');
-            const data: DashboardStats = await response.json();
-            setDashboardStats(data);
-        } catch (err) {
-            setStatsError(err instanceof Error ? err.message : 'An unknown error occurred.');
-        } finally {
-            setIsStatsLoading(false);
-        }
-    };
-    
-    fetchDashboardStats();
-  }, [filters]);
-  
+  }, [typeSummary]);
 
   // Reset page to 1 whenever filters change
   useEffect(() => {
@@ -270,9 +236,9 @@ const CrmView: React.FC = () => {
   }, [filters]);
 
   useEffect(() => {
-    const fetchContacts = async () => {
-      setIsContactsLoading(true);
-      setContactsError(null);
+    const fetchContactsAndSummary = async () => {
+      setIsLoading(true);
+      setError(null);
       try {
         const params = new URLSearchParams({
             page: String(currentPage),
@@ -291,21 +257,22 @@ const CrmView: React.FC = () => {
 
         const response = await fetch(`/api/contacts?${params.toString()}`);
         if (!response.ok) {
-          throw new Error('Failed to fetch contacts. Please check the API server.');
+          throw new Error('Failed to fetch data. Please check the API server.');
         }
         const data = await response.json();
         setContacts(data.contacts);
+        setSummaryData(data.summary);
         setTotalPages(data.totalPages);
         setTotalContactsInTable(data.totalContacts);
       } catch (err) {
-        console.error("Error fetching contacts:", err);
-        setContactsError(err instanceof Error ? err.message : "An unknown error occurred.");
+        console.error("Error fetching data:", err);
+        setError(err instanceof Error ? err.message : "An unknown error occurred.");
       } finally {
-        setIsContactsLoading(false);
+        setIsLoading(false);
       }
     };
 
-    fetchContacts();
+    fetchContactsAndSummary();
   }, [currentPage, filters]);
 
   const handleTextFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -340,19 +307,19 @@ const CrmView: React.FC = () => {
 
   const marketplaceOptions = useMemo(() => {
       const options = [{ value: '_NONE_', label: '[Not Specified]' }];
-      if (dashboardStats?.allMarketplaces) {
-          dashboardStats.allMarketplaces.forEach(m => options.push({ value: m, label: m }));
+      if (summaryData?.allMarketplaces) {
+          summaryData.allMarketplaces.forEach(m => options.push({ value: m, label: m }));
       }
       return options;
-  }, [dashboardStats?.allMarketplaces]);
+  }, [summaryData?.allMarketplaces]);
 
   const productOptions = useMemo(() => {
       const options = [{ value: '_NONE_', label: '[Not Specified]' }];
-      if (dashboardStats?.allProducts) {
-          dashboardStats.allProducts.forEach(p => options.push({ value: p, label: p }));
+      if (summaryData?.allProducts) {
+          summaryData.allProducts.forEach(p => options.push({ value: p, label: p }));
       }
       return options;
-  }, [dashboardStats?.allProducts]);
+  }, [summaryData?.allProducts]);
 
   const SkeletonRow = () => (
     <tr className="animate-pulse">
@@ -390,15 +357,15 @@ const CrmView: React.FC = () => {
   );
 
   const renderTableBody = () => {
-    if (isContactsLoading) {
+    if (isLoading) {
       return Array.from({ length: CONTACTS_PER_PAGE }).map((_, index) => <SkeletonRow key={index} />);
     }
 
-    if (contactsError) {
+    if (error) {
       return (
         <tr>
           <td colSpan={6} className="text-center py-10">
-            <div className="text-red-500 font-medium">Error: {contactsError}</div>
+            <div className="text-red-500 font-medium">Error: {error}</div>
             <p className="text-gray-500 text-sm mt-2">Could not load contact data. Please make sure the API is running and the database connection is configured correctly.</p>
           </td>
         </tr>
@@ -455,14 +422,14 @@ const CrmView: React.FC = () => {
             <div className="flex-1 flex justify-end">
                 <button
                     onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                    disabled={currentPage === 1 || isContactsLoading}
+                    disabled={currentPage === 1 || isLoading}
                     className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     Previous
                 </button>
                 <button
                     onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                    disabled={currentPage === totalPages || isContactsLoading}
+                    disabled={currentPage === totalPages || isLoading}
                     className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     Next
@@ -531,7 +498,7 @@ const CrmView: React.FC = () => {
     if (!data.length) return null;
     return (
         <div className="flex justify-center flex-wrap gap-x-2 gap-y-1 mt-2 text-xs">
-            {summaryData.map((entry, index) => {
+            {typeSummary.map((entry, index) => {
                 const isActive = activeItems.has(entry.type);
                 return (
                     <div
@@ -556,7 +523,7 @@ const CrmView: React.FC = () => {
     if (!data.length) return null;
     return (
         <div className="flex justify-center flex-wrap gap-x-2 gap-y-1 mt-2 text-xs">
-            {marketplaceData.map((entry, index) => {
+            {marketplaceSummary.map((entry, index) => {
                 const isActive = activeItems.has(entry.marketplace);
                 const color = marketplaceColorMap.get(entry.marketplace) || '#CCC';
                 return (
@@ -580,19 +547,17 @@ const CrmView: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100">
                 <h3 className="text-lg font-semibold text-gray-800">Contacts by Type</h3>
-                {isStatsLoading ? (
+                {isLoading ? (
                     <div className="h-72 flex items-center justify-center"><ChartSkeleton /></div>
-                ) : statsError ? (
-                    <div className="text-red-500 text-center py-10">{statsError}</div>
+                ) : error ? (
+                    <div className="text-red-500 text-center py-10">{error}</div>
                 ) : (
                     <>
                         <div className="relative w-full h-72">
                             <ResponsiveContainer width="100%" height="100%">
                                 <PieChart>
                                     <Pie
-                                        // FIX: The `recharts` library's data prop can have typing conflicts with
-                                        // strictly-typed objects. Casting to `any` resolves this without affecting functionality.
-                                        data={filteredSummaryData as any}
+                                        data={filteredTypeSummary as any}
                                         cx="50%"
                                         cy="50%"
                                         innerRadius={70}
@@ -603,7 +568,7 @@ const CrmView: React.FC = () => {
                                         nameKey="type"
                                         cornerRadius={5}
                                     >
-                                        {filteredSummaryData.map((entry) => (
+                                        {filteredTypeSummary.map((entry) => (
                                             <Cell key={`cell-${entry.type}`} fill={typeStyles[entry.type].chart} />
                                         ))}
                                     </Pie>
@@ -614,7 +579,7 @@ const CrmView: React.FC = () => {
                                     />
                                     <Legend
                                       verticalAlign="bottom"
-                                      content={() => renderSegmentLegend(summaryData, activeSegments, handleSegmentLegendClick)}
+                                      content={() => renderSegmentLegend(typeSummary, activeSegments, handleSegmentLegendClick)}
                                     />
                                 </PieChart>
                             </ResponsiveContainer>
@@ -646,19 +611,17 @@ const CrmView: React.FC = () => {
             </div>
             <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100">
                 <h3 className="text-lg font-semibold text-gray-800">Contacts by Last Marketplace</h3>
-                {isStatsLoading ? (
+                {isLoading ? (
                     <div className="h-72 flex items-center justify-center"><ChartSkeleton /></div>
-                ) : statsError ? (
-                    <div className="text-red-500 text-center py-10">{statsError}</div>
+                ) : error ? (
+                    <div className="text-red-500 text-center py-10">{error}</div>
                 ) : (
                     <>
                         <div className="relative w-full h-72">
                             <ResponsiveContainer width="100%" height="100%">
                                 <PieChart>
                                     <Pie
-                                        // FIX: The `recharts` library's data prop can have typing conflicts with
-                                        // strictly-typed objects. Casting to `any` resolves this without affecting functionality.
-                                        data={filteredMarketplaceData as any}
+                                        data={filteredMarketplaceSummary as any}
                                         cx="50%"
                                         cy="50%"
                                         innerRadius={70}
@@ -669,7 +632,7 @@ const CrmView: React.FC = () => {
                                         nameKey="marketplace"
                                         cornerRadius={5}
                                     >
-                                        {filteredMarketplaceData.map((entry) => (
+                                        {filteredMarketplaceSummary.map((entry) => (
                                             <Cell key={`cell-${entry.marketplace}`} fill={marketplaceColorMap.get(entry.marketplace)} />
                                         ))}
                                     </Pie>
@@ -680,7 +643,7 @@ const CrmView: React.FC = () => {
                                     />
                                     <Legend
                                       verticalAlign="bottom"
-                                      content={() => renderMarketplaceLegend(marketplaceData, activeMarketplaces, handleMarketplaceLegendClick)}
+                                      content={() => renderMarketplaceLegend(marketplaceSummary, activeMarketplaces, handleMarketplaceLegendClick)}
                                     />
                                 </PieChart>
                             </ResponsiveContainer>
@@ -712,15 +675,15 @@ const CrmView: React.FC = () => {
             </div>
         </div>
 
-        {(isContactsLoading || isStatsLoading) ? (
+        {isLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <KpiCardSkeleton />
                 <KpiCardSkeleton />
                 <KpiCardSkeleton />
             </div>
-        ) : !(contactsError || statsError) ? (
+        ) : !error ? (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <KpiCard title="Total Contacts" value={(dashboardStats?.totalContacts || 0).toLocaleString()} icon={UserGroupIcon} iconColor="bg-blue-500" />
+                <KpiCard title="Total Contacts" value={(summaryData?.totalContacts || 0).toLocaleString()} icon={UserGroupIcon} iconColor="bg-blue-500" />
                 <KpiCard title="Clients" value={clientCount} icon={UserCheckIcon} iconColor="bg-green-500" />
                 <KpiCard title="Prospects" value={prospectCount} icon={UserSearchIcon} iconColor="bg-yellow-500" />
             </div>
@@ -763,14 +726,14 @@ const CrmView: React.FC = () => {
                             selected={filters.marketplace}
                             onChange={(selected) => handleMultiSelectChange('marketplace', selected)}
                             placeholder="All Last Marketplaces"
-                            disabled={isStatsLoading}
+                            disabled={isLoading}
                         />
                         <MultiSelectDropdown
                             options={productOptions}
                             selected={filters.product}
                             onChange={(selected) => handleMultiSelectChange('product', selected)}
                             placeholder="All Last Purchase Product"
-                            disabled={isStatsLoading}
+                            disabled={isLoading}
                         />
                     </div>
                     <div className="flex items-center space-x-2">
@@ -813,7 +776,7 @@ const CrmView: React.FC = () => {
                     </tbody>
                 </table>
             </div>
-             {!contactsError && totalPages > 0 && <Pagination />}
+             {!error && totalPages > 0 && <Pagination />}
         </div>
     </div>
   );

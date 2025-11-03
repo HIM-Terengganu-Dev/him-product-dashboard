@@ -19,10 +19,29 @@ interface Contact {
   lastMarketplace: string | null;
 }
 
-interface PaginatedResponse {
+interface TypeSummaryData {
+  type: ContactType;
+  count: number;
+}
+
+interface MarketplaceSummaryData {
+  marketplace: string;
+  count: number;
+}
+
+interface SummaryResponse {
+    typeSummary: TypeSummaryData[];
+    marketplaceSummary: MarketplaceSummaryData[];
+    totalContacts: number;
+    allMarketplaces: string[];
+    allProducts: string[];
+}
+
+interface ConsolidatedResponse {
   contacts: Contact[];
   totalContacts: number;
   totalPages: number;
+  summary: SummaryResponse;
 }
 
 // FIX: Correct the type for NextApiRequest which appears to be missing properties like `method` and `query`
@@ -36,14 +55,11 @@ interface ApiRequest extends NextApiRequest {
 // The Pool will read the POSTGRES_URL environment variable automatically.
 const pool = new Pool({
   connectionString: process.env.POSTGRES_URL,
-  ssl: {
-    rejectUnauthorized: false, // Required for Neon connections
-  },
 });
 
 export default async function handler(
   req: ApiRequest,
-  res: NextApiResponse<PaginatedResponse | { error: string }>
+  res: NextApiResponse<ConsolidatedResponse | { error: string }>
 ) {
   if (req.method !== 'GET') {
     res.setHeader('Allow', ['GET']);
@@ -115,84 +131,120 @@ export default async function handler(
   }
 
   const whereString = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
-
+  const baseTable = 'mart_himdashboard.crm_main_table';
+  
   try {
     const client = await pool.connect();
     try {
-      // Query your materialized view with pagination and total count in one go
-      const dataQuery = `
-        WITH filtered_data AS (
-            SELECT * FROM mart_himdashboard.crm_main_table 
-            ${whereString}
-        )
-        SELECT *, COUNT(*) OVER() as total_count
-        FROM filtered_data
-        ORDER BY last_order_date DESC NULLS LAST 
-        LIMIT $${paramIndex++} OFFSET $${paramIndex++}`;
+      // Data Query (paginated)
+      const dataQueryPromise = client.query(`
+          SELECT *, COUNT(*) OVER() as total_count
+          FROM ${baseTable}
+          ${whereString}
+          ORDER BY last_order_date DESC NULLS LAST 
+          LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
+        [...queryParams, limit, offset]
+      );
+
+      // Summary Queries (unpaginated, but with same filters)
+      const typeSummaryPromise = client.query(
+        `SELECT type, COUNT(*) as count FROM ${baseTable} ${whereString} GROUP BY type`,
+        queryParams
+      );
       
-      const finalQueryParams = [...queryParams, limit, offset];
-      const result = await client.query(dataQuery, finalQueryParams);
+      const marketplaceWhereClause = `${whereString ? `${whereString} AND` : 'WHERE'} last_marketplace IS NOT NULL AND TRIM(last_marketplace) <> ''`;
+      const marketplaceSummaryPromise = client.query(
+        `SELECT TRIM(last_marketplace) as marketplace, COUNT(*) as count 
+         FROM ${baseTable} 
+         ${marketplaceWhereClause}
+         GROUP BY TRIM(last_marketplace) 
+         ORDER BY count DESC`,
+        queryParams
+      );
+      
+      const totalSummaryContactsPromise = client.query(`SELECT COUNT(*) as count FROM ${baseTable} ${whereString}`, queryParams);
 
-      const totalContacts = result.rows.length > 0 ? parseInt(result.rows[0].total_count, 10) : 0;
+      // Unfiltered dropdown options
+      const allMarketplacesPromise = client.query(`SELECT DISTINCT TRIM(last_marketplace) as marketplace FROM ${baseTable} WHERE last_marketplace IS NOT NULL AND TRIM(last_marketplace) <> '' ORDER BY marketplace ASC`);
+      const allProductsPromise = client.query(`SELECT DISTINCT TRIM(last_order_product) as product FROM ${baseTable} WHERE last_order_product IS NOT NULL AND TRIM(last_order_product) <> '' ORDER BY product ASC`);
+      
+      const [
+          dataResult,
+          typeSummaryResult, 
+          marketplaceSummaryResult,
+          totalSummaryContactsResult,
+          allMarketplacesResult, 
+          allProductsResult
+      ] = await Promise.all([
+          dataQueryPromise,
+          typeSummaryPromise,
+          marketplaceSummaryPromise,
+          totalSummaryContactsPromise,
+          allMarketplacesPromise,
+          allProductsPromise
+      ]);
+
+      // --- Process Contact List ---
+      const totalContacts = dataResult.rows.length > 0 ? parseInt(dataResult.rows[0].total_count, 10) : 0;
       const totalPages = Math.ceil(totalContacts / limit);
-
-
-      // Transform the database data into the structure your frontend expects.
-      const contacts: Contact[] = result.rows.map(row => {
-        
-        // Mapping from your database columns:
-        const phone = row.phone_number; // Used for display AND as the unique ID.
-        const name = row.name;
-        const type = row.type; // Should contain 'Client', 'Prospect', or 'Lead'
-        
+      
+      const contacts: Contact[] = dataResult.rows.map(row => {
         let lastPurchaseDate: string | null = null;
         if (row.last_order_date) {
             const d = new Date(row.last_order_date);
             lastPurchaseDate = new Intl.DateTimeFormat('sv', {
-                timeZone: 'Asia/Kuala_Lumpur', // UTC+8
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit'
+                timeZone: 'Asia/Kuala_Lumpur',
+                year: 'numeric', month: '2-digit', day: '2-digit'
             }).format(d);
         }
-
-        const lastPurchaseProduct = row.last_order_product;
-        const lastMarketplace = row.last_marketplace;
-
-        // Data validation and transformation
         const validTypes: ContactType[] = ['Client', 'Prospect', 'Lead'];
-        let contactType: ContactType = 'Lead'; // Default to 'Lead'
-
-        if (typeof type === 'string') {
-          // Normalize the string: trim whitespace, capitalize first letter, lowercase the rest.
-          const normalizedType = type.trim();
+        let contactType: ContactType = 'Lead';
+        if (typeof row.type === 'string') {
+          const normalizedType = row.type.trim();
           const titleCaseType = normalizedType.charAt(0).toUpperCase() + normalizedType.slice(1).toLowerCase();
-          
           if (validTypes.includes(titleCaseType as ContactType)) {
             contactType = titleCaseType as ContactType;
           }
         }
-
         return {
-          id: String(phone || ''), // Use phone number as the unique string ID
-          name: name || 'N/A',
-          phone: phone || 'N/A',
-          type: contactType,
-          lastPurchaseDate: lastPurchaseDate,
-          lastPurchaseProduct: lastPurchaseProduct || null,
-          lastMarketplace: lastMarketplace || null,
+          id: String(row.phone_number || ''),
+          name: row.name || 'N/A', phone: row.phone_number || 'N/A', type: contactType,
+          lastPurchaseDate: lastPurchaseDate, lastPurchaseProduct: row.last_order_product || null, lastMarketplace: row.last_marketplace || null,
         };
       });
+
+      // --- Process Summary ---
+      const totalSummaryContacts = parseInt(totalSummaryContactsResult.rows[0].count, 10) || 0;
+      const validTypes: ContactType[] = ['Client', 'Prospect', 'Lead'];
+      const summaryMap = new Map<ContactType, number>();
+      validTypes.forEach(t => summaryMap.set(t, 0));
+      typeSummaryResult.rows.forEach(row => {
+        let contactType: ContactType | null = null;
+        if (typeof row.type === 'string') {
+          const normalizedType = row.type.trim();
+          const titleCaseType = normalizedType.charAt(0).toUpperCase() + normalizedType.slice(1).toLowerCase();
+          if (validTypes.includes(titleCaseType as ContactType)) contactType = titleCaseType as ContactType;
+        }
+        if (contactType) summaryMap.set(contactType, (summaryMap.get(contactType) || 0) + parseInt(row.count, 10));
+      });
       
-      const responseData: PaginatedResponse = {
-        contacts,
-        totalContacts,
-        totalPages,
+      const typeSummary: TypeSummaryData[] = Array.from(summaryMap.entries()).map(([type, count]) => ({ type, count })).sort((a, b) => validTypes.indexOf(a.type) - validTypes.indexOf(b.type));
+      const marketplaceSummary: MarketplaceSummaryData[] = marketplaceSummaryResult.rows.map(row => ({ marketplace: row.marketplace, count: parseInt(row.count, 10) }));
+      const allMarketplaces: string[] = allMarketplacesResult.rows.map(row => row.marketplace);
+      const allProducts: string[] = allProductsResult.rows.map(row => row.product);
+
+      const summary: SummaryResponse = {
+          typeSummary, marketplaceSummary, totalContacts: totalSummaryContacts, allMarketplaces, allProducts
       };
       
-      // Add caching header
+      // --- Combine Response ---
+      const responseData: ConsolidatedResponse = {
+        contacts, totalContacts, totalPages, summary
+      };
+      
       res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
       res.status(200).json(responseData);
+
     } finally {
       client.release();
     }
