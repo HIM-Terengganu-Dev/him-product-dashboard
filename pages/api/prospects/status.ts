@@ -30,9 +30,6 @@ interface StatusResponse {
 
 const pool = new Pool({
   connectionString: process.env.POSTGRES_URL,
-  ssl: {
-    rejectUnauthorized: false,
-  },
 });
 
 // A prospect is 'Active' if their status in the database is 'new' or 'active', otherwise they are 'Inactive'.

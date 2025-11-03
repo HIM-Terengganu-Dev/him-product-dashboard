@@ -153,6 +153,7 @@ const CrmView: React.FC = () => {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [summaryData, setSummaryData] = useState<SummaryData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSummaryLoading, setIsSummaryLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -175,10 +176,10 @@ const CrmView: React.FC = () => {
   const marketplaceSummary = useMemo(() => summaryData?.marketplaceSummary || [], [summaryData]);
 
   useEffect(() => {
-    if (!isLoading && marketplaceSummary.length > 0) {
+    if (!isSummaryLoading && marketplaceSummary.length > 0) {
         setActiveMarketplaces(new Set(marketplaceSummary.map(item => item.marketplace)));
     }
-  }, [isLoading, marketplaceSummary]);
+  }, [isSummaryLoading, marketplaceSummary]);
 
   const filteredTypeSummary = useMemo(() => {
     return typeSummary.filter(item => activeSegments.has(item.type));
@@ -235,8 +236,35 @@ const CrmView: React.FC = () => {
     setCurrentPage(1);
   }, [filters]);
 
+    useEffect(() => {
+        const fetchSummary = async () => {
+            setIsSummaryLoading(true);
+            try {
+                const params = new URLSearchParams();
+                 Object.entries(filters).forEach(([key, value]) => {
+                    if (Array.isArray(value)) {
+                        if (value.length > 0) params.append(key, value.join(','));
+                    } else if (value) {
+                        params.append(key, value as string);
+                    }
+                });
+
+                const response = await fetch(`/api/contacts/summary?${params.toString()}`);
+                if (!response.ok) throw new Error('Failed to fetch summary data.');
+                const data = await response.json();
+                setSummaryData(data);
+            } catch (err) {
+                setError(err instanceof Error ? err.message : "An unknown summary error occurred.");
+            } finally {
+                setIsSummaryLoading(false);
+            }
+        };
+        fetchSummary();
+    }, [filters]);
+
+
   useEffect(() => {
-    const fetchContactsAndSummary = async () => {
+    const fetchContacts = async () => {
       setIsLoading(true);
       setError(null);
       try {
@@ -261,7 +289,6 @@ const CrmView: React.FC = () => {
         }
         const data = await response.json();
         setContacts(data.contacts);
-        setSummaryData(data.summary);
         setTotalPages(data.totalPages);
         setTotalContactsInTable(data.totalContacts);
       } catch (err) {
@@ -272,7 +299,7 @@ const CrmView: React.FC = () => {
       }
     };
 
-    fetchContactsAndSummary();
+    fetchContacts();
   }, [currentPage, filters]);
 
   const handleTextFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -547,7 +574,7 @@ const CrmView: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100">
                 <h3 className="text-lg font-semibold text-gray-800">Contacts by Type</h3>
-                {isLoading ? (
+                {isSummaryLoading ? (
                     <div className="h-72 flex items-center justify-center"><ChartSkeleton /></div>
                 ) : error ? (
                     <div className="text-red-500 text-center py-10">{error}</div>
@@ -611,7 +638,7 @@ const CrmView: React.FC = () => {
             </div>
             <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100">
                 <h3 className="text-lg font-semibold text-gray-800">Contacts by Last Marketplace</h3>
-                {isLoading ? (
+                {isSummaryLoading ? (
                     <div className="h-72 flex items-center justify-center"><ChartSkeleton /></div>
                 ) : error ? (
                     <div className="text-red-500 text-center py-10">{error}</div>
@@ -675,7 +702,7 @@ const CrmView: React.FC = () => {
             </div>
         </div>
 
-        {isLoading ? (
+        {isSummaryLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <KpiCardSkeleton />
                 <KpiCardSkeleton />
@@ -726,14 +753,14 @@ const CrmView: React.FC = () => {
                             selected={filters.marketplace}
                             onChange={(selected) => handleMultiSelectChange('marketplace', selected)}
                             placeholder="All Last Marketplaces"
-                            disabled={isLoading}
+                            disabled={isSummaryLoading}
                         />
                         <MultiSelectDropdown
                             options={productOptions}
                             selected={filters.product}
                             onChange={(selected) => handleMultiSelectChange('product', selected)}
                             placeholder="All Last Purchase Product"
-                            disabled={isLoading}
+                            disabled={isSummaryLoading}
                         />
                     </div>
                     <div className="flex items-center space-x-2">
