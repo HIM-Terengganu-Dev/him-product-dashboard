@@ -69,48 +69,45 @@ export default async function handler(
         const statusCase = getStatusCaseStatement();
 
         // Build base filters to be used across all queries
-        const whereClauses: string[] = [`c.derived_status != 'Other'`];
+        const whereClauses: string[] = [`derived_status != 'Other'`, `type = 'client'`];
         const queryParams: any[] = [];
         let paramIndex = 1;
 
-        whereClauses.push(`c.type = 'client'`);
-
         if (statusFilter && typeof statusFilter === 'string' && statusFilter.toLowerCase() !== 'all') {
-            whereClauses.push(`c.derived_status = $${paramIndex++}`);
+            whereClauses.push(`derived_status = $${paramIndex++}`);
             queryParams.push(statusFilter);
         }
         if (search && typeof search === 'string') {
-            whereClauses.push(`(c.name ILIKE $${paramIndex++} OR c.phone_number ILIKE $${paramIndex++})`);
+            whereClauses.push(`(name ILIKE $${paramIndex++} OR phone_number ILIKE $${paramIndex++})`);
             queryParams.push(`%${search}%`, `%${search}%`);
         }
         if (startDate && typeof startDate === 'string') {
-            whereClauses.push(`c.last_order_date >= $${paramIndex++}`);
+            whereClauses.push(`last_order_date >= $${paramIndex++}`);
             queryParams.push(startDate);
         }
         if (endDate && typeof endDate === 'string') {
-            whereClauses.push(`c.last_order_date <= $${paramIndex++}`);
+            whereClauses.push(`last_order_date <= $${paramIndex++}`);
             queryParams.push(endDate);
         }
         if (product && typeof product === 'string' && product.length > 0) {
-            whereClauses.push(`c.last_order_product = ANY($${paramIndex++}::text[])`);
+            whereClauses.push(`last_order_product = ANY($${paramIndex++}::text[])`);
             queryParams.push(product.split(','));
         }
 
         const whereString = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
 
-        const fromSubquery = `FROM (
-            SELECT *, ${statusCase} as derived_status
-            FROM mart_himdashboard.crm_main_table
-        ) as c`;
-
-        // Summary Query (now with filters)
-        const summaryQuery = `
-            SELECT c.derived_status, COUNT(*) as count
-            ${fromSubquery}
-            ${whereString}
-            GROUP BY c.derived_status;
+        const fromSubqueryWithStatus = `
+            (SELECT *, ${statusCase} as derived_status FROM mart_himdashboard.crm_main_table) as c
         `;
-        const summaryResult = await client.query(summaryQuery, queryParams);
+        
+        // Summary Query (now with filters)
+        const summaryResult = await client.query(`
+            SELECT derived_status, COUNT(*) as count
+            FROM ${fromSubqueryWithStatus}
+            ${whereString.replace(/c\./g, '')}
+            GROUP BY derived_status;
+        `, queryParams);
+
         const summary: Summary = { 'New Client': 0, 'Active': 0, 'Churning': 0, 'Churned': 0 };
         summaryResult.rows.forEach(row => {
             if (summary.hasOwnProperty(row.derived_status)) {
@@ -126,22 +123,20 @@ export default async function handler(
         );
         const allProducts: string[] = allProductsResult.rows.map(row => row.product);
 
-        // Count Query
-        const countQuery = `SELECT COUNT(*) ${fromSubquery} ${whereString};`;
-        const totalResult = await client.query(countQuery, queryParams);
-        const totalClients = parseInt(totalResult.rows[0].count, 10);
-        const totalPages = Math.ceil(totalClients / limit);
-        
-        // Main Data Query
+        // Main Data Query with integrated total count
         const dataQuery = `
-            SELECT *
-            ${fromSubquery}
-            ${whereString}
-            ORDER BY c.last_order_date DESC NULLS LAST
+            SELECT *, COUNT(*) OVER() as total_count
+            FROM ${fromSubqueryWithStatus}
+            ${whereString.replace(/c\./g, '')}
+            ORDER BY last_order_date DESC NULLS LAST
             LIMIT $${paramIndex++} OFFSET $${paramIndex++};
         `;
         const limitOffsetParams = [...queryParams, limit, offset];
         const result = await client.query(dataQuery, limitOffsetParams);
+        
+        const totalClients = result.rows.length > 0 ? parseInt(result.rows[0].total_count, 10) : 0;
+        const totalPages = Math.ceil(totalClients / limit);
+
 
         const clients: Client[] = result.rows.map(row => {
             let lastPurchaseDate: string | null = null;
@@ -161,7 +156,9 @@ export default async function handler(
                 lastOrderProduct: row.last_order_product || null,
             };
         });
-
+        
+        // Add caching header
+        res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
         res.status(200).json({ clients, summary, totalClients, totalPages, allProducts });
 
     } catch (error) {

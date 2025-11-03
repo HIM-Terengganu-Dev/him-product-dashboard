@@ -119,21 +119,23 @@ export default async function handler(
   try {
     const client = await pool.connect();
     try {
-      // First, get the total count of contacts for pagination metadata
-      const totalQuery = `SELECT COUNT(*) FROM mart_himdashboard.crm_main_table ${whereString}`;
-      const totalResult = await client.query(totalQuery, queryParams);
-      const totalContacts = parseInt(totalResult.rows[0].count, 10);
-      const totalPages = Math.ceil(totalContacts / limit);
-
-      // Query your materialized view with pagination
+      // Query your materialized view with pagination and total count in one go
       const dataQuery = `
-        SELECT * FROM mart_himdashboard.crm_main_table 
-        ${whereString}
+        WITH filtered_data AS (
+            SELECT * FROM mart_himdashboard.crm_main_table 
+            ${whereString}
+        )
+        SELECT *, COUNT(*) OVER() as total_count
+        FROM filtered_data
         ORDER BY last_order_date DESC NULLS LAST 
         LIMIT $${paramIndex++} OFFSET $${paramIndex++}`;
       
       const finalQueryParams = [...queryParams, limit, offset];
       const result = await client.query(dataQuery, finalQueryParams);
+
+      const totalContacts = result.rows.length > 0 ? parseInt(result.rows[0].total_count, 10) : 0;
+      const totalPages = Math.ceil(totalContacts / limit);
+
 
       // Transform the database data into the structure your frontend expects.
       const contacts: Contact[] = result.rows.map(row => {
@@ -143,12 +145,6 @@ export default async function handler(
         const name = row.name;
         const type = row.type; // Should contain 'Client', 'Prospect', or 'Lead'
         
-        // FIX: Hardcode date formatting to UTC+8 to guarantee correct date representation.
-        // The pg driver creates a JS Date object based on the server's timezone, which
-        // can cause off-by-one-day errors. By using Intl.DateTimeFormat with a fixed
-        // timezone, we ensure the output string is always correct, regardless of
-        // the server's location. We use the 'sv' (Swedish) locale as it provides
-        // the desired YYYY-MM-DD format.
         let lastPurchaseDate: string | null = null;
         if (row.last_order_date) {
             const d = new Date(row.last_order_date);
@@ -193,7 +189,9 @@ export default async function handler(
         totalContacts,
         totalPages,
       };
-
+      
+      // Add caching header
+      res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
       res.status(200).json(responseData);
     } finally {
       client.release();

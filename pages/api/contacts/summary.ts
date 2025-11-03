@@ -203,6 +203,8 @@ export default async function handler(
           allProducts
       };
 
+      // Add caching header
+      res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
       res.status(200).json(response);
     } finally {
       client.release();

@@ -62,58 +62,53 @@ export default async function handler(
     try {
         const statusCase = getStatusCaseStatement();
 
-        const whereClauses: string[] = [`c.type = 'prospect'`];
+        const whereClauses: string[] = [`type = 'prospect'`];
         const queryParams: any[] = [];
         let paramIndex = 1;
+        
+        const fromSubqueryWithStatus = `
+            (SELECT *, ${statusCase} as derived_status FROM mart_himdashboard.crm_main_table) as c
+        `;
 
         if (statusFilter && typeof statusFilter === 'string' && statusFilter.toLowerCase() !== 'all') {
-            whereClauses.push(`c.derived_status = $${paramIndex++}`);
+            whereClauses.push(`derived_status = $${paramIndex++}`);
             queryParams.push(statusFilter);
         }
         if (search && typeof search === 'string') {
-            whereClauses.push(`(c.name ILIKE $${paramIndex++} OR c.phone_number ILIKE $${paramIndex++})`);
+            whereClauses.push(`(name ILIKE $${paramIndex++} OR phone_number ILIKE $${paramIndex++})`);
             queryParams.push(`%${search}%`, `%${search}%`);
         }
 
         const whereString = `WHERE ${whereClauses.join(' AND ')}`;
 
-        const fromSubquery = `FROM (
-            SELECT *, ${statusCase} as derived_status
-            FROM mart_himdashboard.crm_main_table
-        ) as c`;
-
         // Summary Query
-        const summaryQuery = `
-            SELECT c.derived_status, COUNT(*) as count
-            ${fromSubquery}
-            ${whereString}
-            GROUP BY c.derived_status;
-        `;
-        const summaryResult = await client.query(summaryQuery, queryParams);
+        const summaryResult = await client.query(`
+            SELECT derived_status, COUNT(*) as count
+            FROM ${fromSubqueryWithStatus}
+            ${whereString.replace(/c\./g, '')}
+            GROUP BY derived_status;
+        `, queryParams);
         const summary: Summary = { 'Active': 0, 'Inactive': 0 };
         summaryResult.rows.forEach(row => {
             if (summary.hasOwnProperty(row.derived_status)) {
                 summary[row.derived_status as Status] = parseInt(row.count, 10);
             }
         });
-
-        // Count Query
-        const countQuery = `SELECT COUNT(*) ${fromSubquery} ${whereString};`;
-        const totalResult = await client.query(countQuery, queryParams);
-        const totalProspects = parseInt(totalResult.rows[0].count, 10);
-        const totalPages = Math.ceil(totalProspects / limit);
         
-        // Main Data Query
+        // Main Data Query with integrated total count
         const dataQuery = `
-            SELECT *
-            ${fromSubquery}
-            ${whereString}
-            ORDER BY c.last_order_date DESC NULLS LAST
+            SELECT *, COUNT(*) OVER() as total_count
+            FROM ${fromSubqueryWithStatus}
+            ${whereString.replace(/c\./g, '')}
+            ORDER BY last_order_date DESC NULLS LAST
             LIMIT $${paramIndex++} OFFSET $${paramIndex++};
         `;
         const limitOffsetParams = [...queryParams, limit, offset];
         const result = await client.query(dataQuery, limitOffsetParams);
 
+        const totalProspects = result.rows.length > 0 ? parseInt(result.rows[0].total_count, 10) : 0;
+        const totalPages = Math.ceil(totalProspects / limit);
+        
         const prospects: Prospect[] = result.rows.map(row => {
             let lastContactDate: string | null = null;
             if (row.last_order_date) {
@@ -131,7 +126,9 @@ export default async function handler(
                 lastContactDate: lastContactDate,
             };
         });
-
+        
+        // Add caching header
+        res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
         res.status(200).json({ prospects, summary, totalProspects, totalPages });
 
     } catch (error) {

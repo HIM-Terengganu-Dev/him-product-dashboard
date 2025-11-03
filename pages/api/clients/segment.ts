@@ -69,36 +69,32 @@ export default async function handler(
         const segmentCase = getSegmentCaseStatement();
 
         // Build base filters for all queries
-        const whereClauses = [`c.segment IS NOT NULL`, `c.derived_segment != 'Other'`];
+        const whereClauses = [`segment IS NOT NULL`, `derived_segment != 'Other'`, `type = 'client'`];
         const queryParams: any[] = [];
         let paramIndex = 1;
 
-        whereClauses.push(`c.type = 'client'`);
-
         if (segmentFilter && typeof segmentFilter === 'string' && segmentFilter.toLowerCase() !== 'all') {
-            whereClauses.push(`c.derived_segment = $${paramIndex++}`);
+            whereClauses.push(`derived_segment = $${paramIndex++}`);
             queryParams.push(segmentFilter);
         }
         if (search && typeof search === 'string') {
-            whereClauses.push(`(c.name ILIKE $${paramIndex++} OR c.phone_number ILIKE $${paramIndex++})`);
+            whereClauses.push(`(name ILIKE $${paramIndex++} OR phone_number ILIKE $${paramIndex++})`);
             queryParams.push(`%${search}%`, `%${search}%`);
         }
         
         const whereString = `WHERE ${whereClauses.join(' AND ')}`;
         
-        const fromSubquery = `FROM (
-            SELECT *, ${segmentCase} as derived_segment
-            FROM mart_himdashboard.crm_main_table
-        ) as c`;
+        const fromSubqueryWithSegment = `
+            (SELECT *, ${segmentCase} as derived_segment FROM mart_himdashboard.crm_main_table) as c
+        `;
 
         // Summary Query (with filters)
-        const summaryQuery = `
-            SELECT c.derived_segment, COUNT(*) as count
-            ${fromSubquery}
-            ${whereString}
-            GROUP BY c.derived_segment;
-        `;
-        const summaryResult = await client.query(summaryQuery, queryParams);
+        const summaryResult = await client.query(`
+            SELECT derived_segment, COUNT(*) as count
+            FROM ${fromSubqueryWithSegment}
+            ${whereString.replace(/c\./g, '')}
+            GROUP BY derived_segment;
+        `, queryParams);
         const summary: Summary = { 'Loyal Client': 0, 'High-Spender Client': 0, 'Repeat Client': 0, 'One-time Client': 0 };
         summaryResult.rows.forEach(row => {
             if (summary.hasOwnProperty(row.derived_segment)) {
@@ -106,28 +102,26 @@ export default async function handler(
             }
         });
 
-        // Count Query
-        const countQuery = `SELECT COUNT(*) ${fromSubquery} ${whereString};`;
-        const totalResult = await client.query(countQuery, queryParams);
-        const totalClients = parseInt(totalResult.rows[0].count, 10);
-        const totalPages = Math.ceil(totalClients / limit);
-
-        // Main Data Query
+        // Main Data Query with integrated total count
         const dataQuery = `
             SELECT 
-                c.phone_number,
-                c.name,
-                c.derived_segment,
-                c.aov,
-                c.total_orders,
-                (c.aov * c.total_orders) as total_spent
-            ${fromSubquery}
-            ${whereString}
+                phone_number,
+                name,
+                derived_segment,
+                aov,
+                total_orders,
+                (aov * total_orders) as total_spent,
+                COUNT(*) OVER() as total_count
+            FROM ${fromSubqueryWithSegment}
+            ${whereString.replace(/c\./g, '')}
             ORDER BY total_spent DESC NULLS LAST
             LIMIT $${paramIndex++} OFFSET $${paramIndex++};
         `;
         const limitOffsetParams = [...queryParams, limit, offset];
         const result = await client.query(dataQuery, limitOffsetParams);
+        
+        const totalClients = result.rows.length > 0 ? parseInt(result.rows[0].total_count, 10) : 0;
+        const totalPages = Math.ceil(totalClients / limit);
         
         const clients: Client[] = result.rows.map(row => ({
             id: String(row.phone_number || ''),
@@ -139,6 +133,8 @@ export default async function handler(
             totalOrders: parseInt(row.total_orders || 0),
         }));
 
+        // Add caching header
+        res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
         res.status(200).json({ clients, summary, totalClients, totalPages });
 
     } catch (error) {
