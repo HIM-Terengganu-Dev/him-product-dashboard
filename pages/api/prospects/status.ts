@@ -26,6 +26,7 @@ interface StatusResponse {
   summary: Summary;
   totalProspects: number;
   totalPages: number;
+  allMarketplaces: string[];
 }
 
 const pool = new Pool({
@@ -53,7 +54,7 @@ export default async function handler(
     const limit = parseInt(req.query.limit as string) || 10;
     const offset = (page - 1) * limit;
 
-    const { status: statusFilter, search } = req.query;
+    const { status: statusFilter, search, marketplace } = req.query;
     
     const client = await pool.connect();
     try {
@@ -75,6 +76,23 @@ export default async function handler(
             whereClauses.push(`(name ILIKE $${paramIndex++} OR phone_number ILIKE $${paramIndex++})`);
             queryParams.push(`%${search}%`, `%${search}%`);
         }
+        if (marketplace && typeof marketplace === 'string' && marketplace.length > 0) {
+            let marketplaceArray = marketplace.split(',');
+            const hasNone = marketplaceArray.includes('_NONE_');
+            marketplaceArray = marketplaceArray.filter(m => m !== '_NONE_');
+            
+            const conditions: string[] = [];
+            if (hasNone) {
+                conditions.push(`(last_marketplace IS NULL OR TRIM(last_marketplace) = '')`);
+            }
+            if (marketplaceArray.length > 0) {
+                conditions.push(`last_marketplace = ANY($${paramIndex++}::text[])`);
+                queryParams.push(marketplaceArray);
+            }
+            if (conditions.length > 0) {
+                whereClauses.push(`(${conditions.join(' OR ')})`);
+            }
+        }
 
         const whereString = `WHERE ${whereClauses.join(' AND ')}`;
 
@@ -91,6 +109,14 @@ export default async function handler(
                 summary[row.derived_status as Status] = parseInt(row.count, 10);
             }
         });
+
+        // Marketplace list for dropdown filter (unfiltered)
+        const allMarketplacesResult = await client.query(
+            `SELECT DISTINCT TRIM(last_marketplace) as marketplace FROM mart_himdashboard.crm_main_table 
+             WHERE last_marketplace IS NOT NULL AND TRIM(last_marketplace) <> '' 
+             ORDER BY marketplace ASC`
+        );
+        const allMarketplaces: string[] = allMarketplacesResult.rows.map(row => row.marketplace);
         
         // Main Data Query with integrated total count
         const dataQuery = `
@@ -126,7 +152,7 @@ export default async function handler(
         
         // Add caching header
         res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
-        res.status(200).json({ prospects, summary, totalProspects, totalPages });
+        res.status(200).json({ prospects, summary, totalProspects, totalPages, allMarketplaces });
 
     } catch (error) {
         console.error('Database query failed:', error);

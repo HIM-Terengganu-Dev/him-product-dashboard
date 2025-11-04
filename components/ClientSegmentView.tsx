@@ -23,6 +23,7 @@ interface Summary {
 
 interface Filters {
     search: string;
+    marketplace: string[];
 }
 
 const CLIENTS_PER_PAGE = 10;
@@ -146,7 +147,8 @@ const ClientSegmentView: React.FC = () => {
     const [totalPages, setTotalPages] = useState(0);
     const [totalClients, setTotalClients] = useState(0);
     const [activeFilter, setActiveFilter] = useState<Segment | 'All'>('All');
-    const [filters, setFilters] = useState<Filters>({ search: '' });
+    const [filters, setFilters] = useState<Filters>({ search: '', marketplace: [] });
+    const [allMarketplaces, setAllMarketplaces] = useState<string[]>([]);
 
     useEffect(() => {
         const fetchClientSegmentData = async () => {
@@ -159,6 +161,7 @@ const ClientSegmentView: React.FC = () => {
                     segment: activeFilter,
                 });
                 if (filters.search) params.append('search', filters.search);
+                if (filters.marketplace.length > 0) params.append('marketplace', filters.marketplace.join(','));
 
                 const response = await fetch(`/api/clients/segment?${params.toString()}`);
                 if (!response.ok) {
@@ -169,6 +172,7 @@ const ClientSegmentView: React.FC = () => {
                 setSummary(data.summary);
                 setTotalPages(data.totalPages);
                 setTotalClients(data.totalClients);
+                setAllMarketplaces(data.allMarketplaces);
             } catch (err) {
                 setError(err instanceof Error ? err.message : 'An unknown error occurred.');
             } finally {
@@ -184,6 +188,10 @@ const ClientSegmentView: React.FC = () => {
 
     const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFilters(prev => ({...prev, search: e.target.value }));
+    };
+
+    const handleMarketplaceFilterChange = (marketplaces: string[]) => {
+        setFilters(prev => ({ ...prev, marketplace: marketplaces }));
     };
 
     const chartData = useMemo(() => {
@@ -202,6 +210,12 @@ const ClientSegmentView: React.FC = () => {
     const handleFilterClick = (segment: Segment | 'All') => {
         setActiveFilter(segment);
     };
+
+    const marketplaceOptions = useMemo(() => {
+        const options = [{ value: '_NONE_', label: '[Not Specified]' }];
+        allMarketplaces.forEach(m => options.push({ value: m, label: m }));
+        return options;
+    }, [allMarketplaces]);
 
     const CustomTooltip = ({ active, payload }: any) => {
         if (active && payload && payload.length) {
@@ -279,16 +293,16 @@ const ClientSegmentView: React.FC = () => {
 
     const renderCustomLegend = () => {
         return (
-            <div className="flex justify-center flex-wrap gap-x-4 gap-y-2 mt-4 text-xs">
+            <div className="flex justify-center flex-wrap gap-x-3 gap-y-1 mt-2 text-xs">
                 {segments.map((segment) => {
                     const isActive = activeFilter === 'All' || activeFilter === segment;
                     return (
                         <div
                             key={segment}
                             onClick={() => handleFilterClick(segment)}
-                            className={`flex items-center cursor-pointer transition-all duration-200 rounded-full px-3 py-1 ${isActive ? 'opacity-100 bg-gray-100' : 'opacity-50 hover:opacity-100'}`}
+                            className={`flex items-center cursor-pointer transition-all duration-200 rounded-full px-2 py-1 ${isActive ? 'opacity-100 bg-gray-100' : 'opacity-50 hover:opacity-100'}`}
                         >
-                            <span className="w-2.5 h-2.5 rounded-full mr-2 shrink-0" style={{ backgroundColor: segmentInfo[segment].color }}></span>
+                            <span className="w-2.5 h-2.5 rounded-full mr-1.5 shrink-0" style={{ backgroundColor: segmentInfo[segment].color }}></span>
                             <span className="text-gray-700 font-medium">{segment}</span>
                         </div>
                     );
@@ -303,13 +317,13 @@ const ClientSegmentView: React.FC = () => {
             <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-md border border-gray-100">
                 <h3 className="text-lg font-semibold text-gray-800">Client Segment Distribution</h3>
                 {isLoading && !summary ? (
-                    <div className="animate-pulse flex items-center justify-center h-64">
+                    <div className="animate-pulse flex items-center justify-center h-72">
                         <div className="w-48 h-48 bg-gray-200 rounded-full"></div>
                     </div>
                 ) : error ? (
                     <div className="text-red-500 text-center py-10">Could not load chart data.</div>
                 ) : (
-                     <div className="relative w-full h-64">
+                     <div className="relative w-full h-72">
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
                                 <Pie
@@ -381,8 +395,8 @@ const ClientSegmentView: React.FC = () => {
             </div>
             {/* Filter Section */}
             <div className="px-4 sm:px-6 py-4 border-b border-gray-200 bg-gray-50/50">
-                <div className="flex flex-col sm:flex-row gap-4">
-                    <div className="sm:max-w-xs w-full">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="w-full">
                          <input
                             type="text"
                             name="search"
@@ -390,6 +404,15 @@ const ClientSegmentView: React.FC = () => {
                             value={filters.search}
                             onChange={handleFilterChange}
                             className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-150 ease-in-out"
+                        />
+                    </div>
+                    <div className="w-full">
+                        <MultiSelectDropdown
+                            options={marketplaceOptions}
+                            selected={filters.marketplace}
+                            onChange={handleMarketplaceFilterChange}
+                            placeholder="Filter by Marketplace"
+                            disabled={isLoading}
                         />
                     </div>
                 </div>

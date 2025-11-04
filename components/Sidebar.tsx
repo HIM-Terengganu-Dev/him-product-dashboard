@@ -24,8 +24,8 @@ const navItems: NavItem[] = [
     icon: CrmIcon,
     subItems: [
       { name: 'Main', view: 'CRM' },
-      { name: 'Client Status', view: 'Client Status' },
       { name: 'Prospect Status', view: 'Prospect Status' },
+      { name: 'Client Status', view: 'Client Status' },
       { name: 'Client Segment', view: 'Client Segment' },
     ],
   },

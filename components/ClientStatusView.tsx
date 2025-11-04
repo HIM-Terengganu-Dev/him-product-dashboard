@@ -25,6 +25,7 @@ interface Filters {
     startDate: string;
     endDate: string;
     product: string[];
+    marketplace: string[];
 }
 
 const CLIENTS_PER_PAGE = 10;
@@ -153,8 +154,10 @@ const ClientStatusView: React.FC = () => {
         startDate: '',
         endDate: '',
         product: [],
+        marketplace: [],
     });
     const [allProducts, setAllProducts] = useState<string[]>([]);
+    const [allMarketplaces, setAllMarketplaces] = useState<string[]>([]);
 
     useEffect(() => {
         const fetchClientStatusData = async () => {
@@ -170,6 +173,7 @@ const ClientStatusView: React.FC = () => {
                 if (filters.startDate) params.append('startDate', filters.startDate);
                 if (filters.endDate) params.append('endDate', filters.endDate);
                 if (filters.product.length > 0) params.append('product', filters.product.join(','));
+                if (filters.marketplace.length > 0) params.append('marketplace', filters.marketplace.join(','));
 
                 const response = await fetch(`/api/clients/status?${params.toString()}`);
                 if (!response.ok) {
@@ -181,6 +185,7 @@ const ClientStatusView: React.FC = () => {
                 setTotalPages(data.totalPages);
                 setTotalClients(data.totalClients);
                 setAllProducts(data.allProducts);
+                setAllMarketplaces(data.allMarketplaces);
             } catch (err) {
                 setError(err instanceof Error ? err.message : 'An unknown error occurred.');
             } finally {
@@ -203,6 +208,10 @@ const ClientStatusView: React.FC = () => {
         setFilters(prev => ({...prev, product: products }));
     };
 
+    const handleMarketplaceFilterChange = (marketplaces: string[]) => {
+        setFilters(prev => ({...prev, marketplace: marketplaces }));
+    };
+
     const chartData = useMemo(() => {
         if (!summary) return [];
         return statuses.map(status => ({
@@ -223,6 +232,12 @@ const ClientStatusView: React.FC = () => {
     const productOptions = useMemo(() => {
         return allProducts.map(p => ({ value: p, label: p }));
     }, [allProducts]);
+
+    const marketplaceOptions = useMemo(() => {
+        const options = [{ value: '_NONE_', label: '[Not Specified]' }];
+        allMarketplaces.forEach(m => options.push({ value: m, label: m }));
+        return options;
+    }, [allMarketplaces]);
 
     const CustomTooltip = ({ active, payload }: any) => {
         if (active && payload && payload.length) {
@@ -396,7 +411,7 @@ const ClientStatusView: React.FC = () => {
                 </div>
                 {/* Filter Section */}
                 <div className="px-4 sm:px-6 py-4 border-b border-gray-200 bg-gray-50/50">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                         <input
                            type="text"
                            name="search"
@@ -410,6 +425,13 @@ const ClientStatusView: React.FC = () => {
                             selected={filters.product}
                             onChange={handleProductFilterChange}
                             placeholder="Filter by Product"
+                            disabled={isLoading}
+                        />
+                        <MultiSelectDropdown
+                            options={marketplaceOptions}
+                            selected={filters.marketplace}
+                            onChange={handleMarketplaceFilterChange}
+                            placeholder="Filter by Marketplace"
                             disabled={isLoading}
                         />
                         <input
