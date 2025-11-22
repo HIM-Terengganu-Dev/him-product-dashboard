@@ -3,16 +3,16 @@
 // ==================== Common Types ====================
 export type ContactType = 'Client' | 'Prospect' | 'Lead';
 
-export type ViewType = 
-  | "Dashboard" 
-  | "Orders" 
-  | "CRM" 
-  | "Client Status" 
-  | "Client Segment" 
-  | "Prospect Status" 
-  | "Sales" 
-  | "Products" 
-  | "Messages" 
+export type ViewType =
+  | "Dashboard"
+  | "Orders"
+  | "CRM"
+  | "Client Status"
+  | "Client Segment"
+  | "Prospect Status"
+  | "Sales"
+  | "Products"
+  | "Messages"
   | "Settings";
 
 // ==================== Contact Types ====================
@@ -58,10 +58,10 @@ export interface UnifiedResponse {
 // ==================== Client Types ====================
 export type ClientStatus = "New Client" | "Active" | "Churning" | "Churned";
 
-export type ClientSegment = 
-  | "Loyal Client" 
-  | "High-Spender Client" 
-  | "Repeat Client" 
+export type ClientSegment =
+  | "Loyal Client"
+  | "High-Spender Client"
+  | "Repeat Client"
   | "One-time Client";
 
 export interface Client {
@@ -138,7 +138,7 @@ import type { NextApiRequest } from 'next';
 export interface ApiRequest extends NextApiRequest {
   method?: string;
   query: { [key: string]: string | string[] | undefined };
-  body?: any;
+  body: any;
 }
 
 // ==================== User Types ====================
