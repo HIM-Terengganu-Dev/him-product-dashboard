@@ -1,41 +1,23 @@
-import { Pool } from 'pg';
-import type { NextApiRequest, NextApiResponse } from 'next';
-
-interface ApiRequest extends NextApiRequest {
-  method?: string;
-  query: { [key: string]: string | string[] | undefined };
-}
-
-type Status = "New Client" | "Active" | "Churning" | "Churned";
-
-interface Client {
-  id: string;
-  name: string;
-  phone: string;
-  status: Status;
-  lastPurchaseDate: string | null;
-  lastOrderProduct: string | null;
-}
-
-interface Summary {
-    'New Client': number;
-    'Active': number;
-    'Churning': number;
-    'Churned': number;
-}
-
-interface StatusResponse {
-  clients: Client[];
-  summary: Summary;
-  totalClients: number;
-  totalPages: number;
-  allProducts: string[];
-  allMarketplaces: string[];
-}
-
-const pool = new Pool({
-  connectionString: process.env.POSTGRES_URL,
-});
+import type { NextApiResponse } from 'next';
+import { pool } from '../../../lib/db';
+import {
+  validateMethod,
+  parsePagination,
+  getQueryString,
+  parseQueryArray,
+  buildMarketplaceFilter,
+  buildProductFilter,
+  formatDate,
+  sendErrorResponse,
+  sendSuccessResponse,
+} from '../../../lib/api-helpers';
+import type {
+  ApiRequest,
+  ClientStatus,
+  Client,
+  ClientStatusSummary,
+  ClientStatusResponse,
+} from '../../../types';
 
 const getStatusCaseStatement = () => `
     CASE
@@ -49,145 +31,140 @@ const getStatusCaseStatement = () => `
 
 export default async function handler(
   req: ApiRequest,
-  res: NextApiResponse<StatusResponse | { error: string }>
+  res: NextApiResponse<ClientStatusResponse | { error: string }>
 ) {
-    if (req.method !== 'GET') {
-        res.setHeader('Allow', ['GET']);
-        return res.status(405).end(`Method ${req.method} Not Allowed`);
+  if (!validateMethod(req, res, ['GET'])) {
+    return;
+  }
+
+  const { page, limit, offset } = parsePagination(req.query);
+  const { status: statusFilter, search, startDate, endDate, product, marketplace } = req.query;
+
+  const client = await pool.connect();
+  try {
+    const statusCase = getStatusCaseStatement();
+
+    // Build base filters to be used across all queries
+    const whereClauses: string[] = [`derived_status != 'Other'`, `type = 'client'`];
+    const queryParams: any[] = [];
+    let paramIndex = 1;
+
+    if (statusFilter && typeof statusFilter === 'string' && statusFilter.toLowerCase() !== 'all') {
+      whereClauses.push(`derived_status = $${paramIndex++}`);
+      queryParams.push(statusFilter);
     }
-
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 10;
-    const offset = (page - 1) * limit;
-
-    const { status: statusFilter, search, startDate, endDate, product, marketplace } = req.query;
-    
-    const client = await pool.connect();
-    try {
-        const statusCase = getStatusCaseStatement();
-
-        // Build base filters to be used across all queries
-        const whereClauses: string[] = [`derived_status != 'Other'`, `type = 'client'`];
-        const queryParams: any[] = [];
-        let paramIndex = 1;
-
-        if (statusFilter && typeof statusFilter === 'string' && statusFilter.toLowerCase() !== 'all') {
-            whereClauses.push(`derived_status = $${paramIndex++}`);
-            queryParams.push(statusFilter);
-        }
-        if (search && typeof search === 'string') {
-            whereClauses.push(`(name ILIKE $${paramIndex++} OR phone_number ILIKE $${paramIndex++})`);
-            queryParams.push(`%${search}%`, `%${search}%`);
-        }
-        if (startDate && typeof startDate === 'string') {
-            whereClauses.push(`last_order_date >= $${paramIndex++}`);
-            queryParams.push(startDate);
-        }
-        if (endDate && typeof endDate === 'string') {
-            whereClauses.push(`last_order_date <= $${paramIndex++}`);
-            queryParams.push(endDate);
-        }
-        if (product && typeof product === 'string' && product.length > 0) {
-            whereClauses.push(`last_order_product = ANY($${paramIndex++}::text[])`);
-            queryParams.push(product.split(','));
-        }
-        if (marketplace && typeof marketplace === 'string' && marketplace.length > 0) {
-            let marketplaceArray = marketplace.split(',');
-            const hasNone = marketplaceArray.includes('_NONE_');
-            marketplaceArray = marketplaceArray.filter(m => m !== '_NONE_');
-            
-            const conditions: string[] = [];
-            if (hasNone) {
-                conditions.push(`(last_marketplace IS NULL OR TRIM(last_marketplace) = '')`);
-            }
-            if (marketplaceArray.length > 0) {
-                conditions.push(`last_marketplace = ANY($${paramIndex++}::text[])`);
-                queryParams.push(marketplaceArray);
-            }
-            if (conditions.length > 0) {
-                whereClauses.push(`(${conditions.join(' OR ')})`);
-            }
-        }
-
-        const whereString = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
-
-        const fromSubqueryWithStatus = `
-            (SELECT *, ${statusCase} as derived_status FROM mart_himdashboard.crm_main_table) as c
-        `;
-        
-        // Summary Query (now with filters)
-        const summaryResult = await client.query(`
-            SELECT derived_status, COUNT(*) as count
-            FROM ${fromSubqueryWithStatus}
-            ${whereString.replace(/c\./g, '')}
-            GROUP BY derived_status;
-        `, queryParams);
-
-        const summary: Summary = { 'New Client': 0, 'Active': 0, 'Churning': 0, 'Churned': 0 };
-        summaryResult.rows.forEach(row => {
-            if (summary.hasOwnProperty(row.derived_status)) {
-                summary[row.derived_status as Status] = parseInt(row.count, 10);
-            }
-        });
-
-        // Product list for dropdown filter (unfiltered)
-        const allProductsResult = await client.query(
-            `SELECT DISTINCT TRIM(last_order_product) as product FROM mart_himdashboard.crm_main_table 
-             WHERE last_order_product IS NOT NULL AND TRIM(last_order_product) <> '' 
-             ORDER BY product ASC`
-        );
-        const allProducts: string[] = allProductsResult.rows.map(row => row.product);
-        
-        // Marketplace list for dropdown filter (unfiltered)
-        const allMarketplacesResult = await client.query(
-            `SELECT DISTINCT TRIM(last_marketplace) as marketplace FROM mart_himdashboard.crm_main_table 
-             WHERE last_marketplace IS NOT NULL AND TRIM(last_marketplace) <> '' 
-             ORDER BY marketplace ASC`
-        );
-        const allMarketplaces: string[] = allMarketplacesResult.rows.map(row => row.marketplace);
-
-        // Main Data Query with integrated total count
-        const dataQuery = `
-            SELECT *, COUNT(*) OVER() as total_count
-            FROM ${fromSubqueryWithStatus}
-            ${whereString.replace(/c\./g, '')}
-            ORDER BY last_order_date DESC NULLS LAST
-            LIMIT $${paramIndex++} OFFSET $${paramIndex++};
-        `;
-        const limitOffsetParams = [...queryParams, limit, offset];
-        const result = await client.query(dataQuery, limitOffsetParams);
-        
-        const totalClients = result.rows.length > 0 ? parseInt(result.rows[0].total_count, 10) : 0;
-        const totalPages = Math.ceil(totalClients / limit);
-
-
-        const clients: Client[] = result.rows.map(row => {
-            let lastPurchaseDate: string | null = null;
-            if (row.last_order_date) {
-                const d = new Date(row.last_order_date);
-                lastPurchaseDate = new Intl.DateTimeFormat('sv', {
-                    timeZone: 'Asia/Kuala_Lumpur',
-                    year: 'numeric', month: '2-digit', day: '2-digit'
-                }).format(d);
-            }
-            return {
-                id: String(row.phone_number || ''),
-                name: row.name || 'N/A',
-                phone: row.phone_number || 'N/A',
-                status: row.derived_status,
-                lastPurchaseDate: lastPurchaseDate,
-                lastOrderProduct: row.last_order_product || null,
-            };
-        });
-        
-        // Add caching header
-        res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
-        res.status(200).json({ clients, summary, totalClients, totalPages, allProducts, allMarketplaces });
-
-    } catch (error) {
-        console.error('Database query failed:', error);
-        res.status(500).json({ error: 'Internal Server Error' });
-    } finally {
-        client.release();
+    if (search && typeof search === 'string') {
+      whereClauses.push(`(name ILIKE $${paramIndex++} OR phone_number ILIKE $${paramIndex++})`);
+      queryParams.push(`%${search}%`, `%${search}%`);
     }
+    if (startDate && typeof startDate === 'string') {
+      whereClauses.push(`last_order_date >= $${paramIndex++}`);
+      queryParams.push(startDate);
+    }
+    if (endDate && typeof endDate === 'string') {
+      whereClauses.push(`last_order_date <= $${paramIndex++}`);
+      queryParams.push(endDate);
+    }
+  const productStr = getQueryString(req.query, 'product');
+  if (productStr) {
+    const productArray = productStr.split(',');
+    if (productArray.length > 0) {
+      whereClauses.push(`last_order_product = ANY($${paramIndex++}::text[])`);
+      queryParams.push(productArray);
+    }
+  }
+
+  const marketplaceStr = getQueryString(req.query, 'marketplace');
+  if (marketplaceStr) {
+    const marketplaceArray = marketplaceStr.split(',');
+    const filter = buildMarketplaceFilter(marketplaceArray, paramIndex, queryParams);
+    if (filter.clause) {
+      whereClauses.push(filter.clause);
+      paramIndex = filter.nextParamIndex;
+    }
+  }
+
+    const whereString = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+
+    const fromSubqueryWithStatus = `
+      (SELECT *, ${statusCase} as derived_status FROM mart_himdashboard.crm_main_table) as c
+    `;
+
+    // Summary Query (now with filters)
+    const summaryResult = await client.query(
+      `
+      SELECT derived_status, COUNT(*) as count
+      FROM ${fromSubqueryWithStatus}
+      ${whereString.replace(/c\./g, '')}
+      GROUP BY derived_status;
+    `,
+      queryParams
+    );
+
+  const summary: ClientStatusSummary = {
+    'New Client': 0,
+    'Active': 0,
+    'Churning': 0,
+    'Churned': 0,
+  };
+  summaryResult.rows.forEach(row => {
+    if (summary.hasOwnProperty(row.derived_status)) {
+      summary[row.derived_status as ClientStatus] = parseInt(row.count, 10);
+    }
+  });
+
+    // Product list for dropdown filter (unfiltered)
+    const allProductsResult = await client.query(
+      `SELECT DISTINCT TRIM(last_order_product) as product FROM mart_himdashboard.crm_main_table 
+       WHERE last_order_product IS NOT NULL AND TRIM(last_order_product) <> '' 
+       ORDER BY product ASC`
+    );
+    const allProducts: string[] = allProductsResult.rows.map(row => row.product);
+
+    // Marketplace list for dropdown filter (unfiltered)
+    const allMarketplacesResult = await client.query(
+      `SELECT DISTINCT TRIM(last_marketplace) as marketplace FROM mart_himdashboard.crm_main_table 
+       WHERE last_marketplace IS NOT NULL AND TRIM(last_marketplace) <> '' 
+       ORDER BY marketplace ASC`
+    );
+    const allMarketplaces: string[] = allMarketplacesResult.rows.map(row => row.marketplace);
+
+    // Main Data Query with integrated total count
+    const dataQuery = `
+      SELECT *, COUNT(*) OVER() as total_count
+      FROM ${fromSubqueryWithStatus}
+      ${whereString.replace(/c\./g, '')}
+      ORDER BY last_order_date DESC NULLS LAST
+      LIMIT $${paramIndex++} OFFSET $${paramIndex++};
+    `;
+    const limitOffsetParams = [...queryParams, limit, offset];
+    const result = await client.query(dataQuery, limitOffsetParams);
+
+    const totalClients = result.rows.length > 0 ? parseInt(result.rows[0].total_count, 10) : 0;
+    const totalPages = Math.ceil(totalClients / limit);
+
+    const clients: Client[] = result.rows.map(row => ({
+      id: String(row.phone_number || ''),
+      name: row.name || 'N/A',
+      phone: row.phone_number || 'N/A',
+      status: row.derived_status as ClientStatus,
+      lastPurchaseDate: formatDate(row.last_order_date),
+      lastOrderProduct: row.last_order_product || null,
+    }));
+
+    sendSuccessResponse(res, {
+      clients,
+      summary,
+      totalClients,
+      totalPages,
+      allProducts,
+      allMarketplaces,
+    });
+
+  } catch (error) {
+    console.error('Database query failed:', error);
+    sendErrorResponse(res, 500, 'Internal Server Error');
+  } finally {
+    client.release();
+  }
 }

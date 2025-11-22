@@ -1,95 +1,285 @@
-import React from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
-import { ArrowUpIcon, ArrowDownIcon } from './Icons';
+'use client';
 
-// Mock Data
-const salesData = [
-  { name: 'Jan', sales: 4000, revenue: 2400 },
-  { name: 'Feb', sales: 3000, revenue: 1398 },
-  { name: 'Mar', sales: 2000, revenue: 9800 },
-  { name: 'Apr', sales: 2780, revenue: 3908 },
-  { name: 'May', sales: 1890, revenue: 4800 },
-  { name: 'Jun', sales: 2390, revenue: 3800 },
-  { name: 'Jul', sales: 3490, revenue: 4300 },
-];
+import React, { useState, useEffect } from 'react';
+import { UserGroupIcon, UserCheckIcon, UserSearchIcon, TrendingUpIcon, ChartBarIcon, CalendarIcon } from './Icons';
 
-const leadsData = [
-  { name: 'Organic', value: 400, color: '#4f46e5' },
-  { name: 'Referral', value: 300, color: '#7c3aed' },
-  { name: 'Paid Ads', value: 300, color: '#0ea5e9' },
-  { name: 'Social', value: 200, color: '#10b981' },
-];
-
-interface KpiCardProps {
-    title: string;
-    value: string;
-    change: string;
-    isPositive: boolean;
+interface DashboardStats {
+  totalContacts: number;
+  totalClients: number;
+  totalProspects: number;
+  totalLeads: number;
 }
 
-const KpiCard: React.FC<KpiCardProps> = ({ title, value, change, isPositive }) => (
-    <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100">
-        <h3 className="text-sm font-medium text-gray-500">{title}</h3>
-        <p className="text-3xl font-bold mt-2 text-gray-800">{value}</p>
-        <div className={`flex items-center mt-2 text-sm ${isPositive ? 'text-green-500' : 'text-red-500'}`}>
-            {isPositive ? <ArrowUpIcon className="h-4 w-4 mr-1" /> : <ArrowDownIcon className="h-4 w-4 mr-1" />}
-            <span>{change} vs last month</span>
-        </div>
-    </div>
-);
-
 const DashboardView: React.FC = () => {
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+    // Fetch summary data
+    const fetchStats = async () => {
+      try {
+        const response = await fetch('/api/contacts/summary');
+        if (response.ok) {
+          const data = await response.json();
+          setStats({
+            totalContacts: data.totalContacts || 0,
+            totalClients: data.clients || 0,
+            totalProspects: data.prospects || 0,
+            totalLeads: data.leads || 0,
+          });
+        }
+      } catch (error) {
+        console.error('Failed to fetch dashboard stats:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchStats();
+
+    // Update time every minute
+    const timer = setInterval(() => setCurrentTime(new Date()), 60000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
+  };
+
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  const StatCard = ({
+    icon: Icon,
+    title,
+    value,
+    subtitle,
+    gradient,
+    trend
+  }: {
+    icon: React.FC<React.SVGProps<SVGSVGElement>>;
+    title: string;
+    value: string;
+    subtitle: string;
+    gradient: string;
+    trend?: string;
+  }) => (
+    <div className="relative bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+      <div className={`absolute top-0 right-0 w-32 h-32 ${gradient} opacity-10 rounded-bl-full`}></div>
+      <div className="relative p-6">
+        <div className="flex items-start justify-between mb-4">
+          <div className={`p-3 rounded-xl ${gradient}`}>
+            <Icon className="h-7 w-7 text-white" />
+          </div>
+          {trend && (
+            <span className="text-green-600 text-sm font-semibold flex items-center gap-1">
+              <TrendingUpIcon className="w-4 h-4" />
+              {trend}
+            </span>
+          )}
+        </div>
+        <h3 className="text-sm font-medium text-gray-600 mb-1">{title}</h3>
+        <p className="text-3xl font-bold text-gray-900 mb-1">{value}</p>
+        <p className="text-xs text-gray-500">{subtitle}</p>
+      </div>
+    </div>
+  );
+
+  const QuickActionCard = ({
+    icon: Icon,
+    title,
+    description,
+    href,
+    color
+  }: {
+    icon: React.FC<React.SVGProps<SVGSVGElement>>;
+    title: string;
+    description: string;
+    href: string;
+    color: string;
+  }) => (
+    <a
+      href={href}
+      className="block bg-white rounded-xl shadow-md border border-gray-100 p-5 hover:shadow-lg hover:border-indigo-200 transition-all duration-200 group"
+    >
+      <div className="flex items-start gap-4">
+        <div className={`p-2.5 rounded-lg ${color} group-hover:scale-110 transition-transform duration-200`}>
+          <Icon className="h-5 w-5 text-white" />
+        </div>
+        <div className="flex-1">
+          <h4 className="font-semibold text-gray-900 mb-1 group-hover:text-indigo-600 transition-colors">
+            {title}
+          </h4>
+          <p className="text-sm text-gray-600">{description}</p>
+        </div>
+        <svg className="w-5 h-5 text-gray-400 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        </svg>
+      </div>
+    </a>
+  );
+
   return (
     <div className="space-y-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <KpiCard title="Total Revenue" value="$45,231.89" change="+20.1%" isPositive={true} />
-            <KpiCard title="New Leads" value="+1,230" change="+12.5%" isPositive={true} />
-            <KpiCard title="Orders" value="3,450" change="-2.4%" isPositive={false} />
-            {/* FIX: Added missing 'change' prop to satisfy the KpiCardProps interface. */}
-            <KpiCard title="Conversion Rate" value="12.3%" change="+1.8%" isPositive={true} />
+      {/* Hero Section */}
+      <div className="relative bg-gradient-to-br from-indigo-600 via-indigo-700 to-purple-700 rounded-2xl shadow-xl overflow-hidden">
+        <div className="absolute inset-0 bg-grid-white/[0.05] bg-[size:20px_20px]"></div>
+        <div className="relative p-8">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+            <div>
+              <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
+                Welcome to HIM Wellness Dashboard
+              </h1>
+              <p className="text-indigo-100 text-lg">
+                {formatDate(currentTime)} • {formatTime(currentTime)}
+              </p>
+            </div>
+            <div className="mt-6 md:mt-0">
+              <div className="flex items-center gap-3 bg-white/10 backdrop-blur-sm rounded-xl px-5 py-3 border border-white/20">
+                <CalendarIcon className="h-6 w-6 text-white" />
+                <div>
+                  <p className="text-xs text-indigo-200">Today's Date</p>
+                  <p className="text-sm font-semibold text-white">
+                    {new Date().toLocaleDateString('en-MY')}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
+      </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-md border border-gray-100">
-                <h3 className="text-lg font-semibold mb-4 text-gray-800">Sales Performance</h3>
-                <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={salesData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                        <XAxis dataKey="name" stroke="#64748b" />
-                        <YAxis stroke="#64748b" />
-                        <Tooltip contentStyle={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.5rem' }} />
-                        <Legend />
-                        <Bar dataKey="revenue" fill="#4f46e5" name="Revenue" />
-                        <Bar dataKey="sales" fill="#7c3aed" name="Sales Units" />
-                    </BarChart>
-                </ResponsiveContainer>
-            </div>
-            <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100">
-                <h3 className="text-lg font-semibold mb-4 text-gray-800">Lead Sources</h3>
-                <ResponsiveContainer width="100%" height={300}>
-                    <PieChart>
-                        <Pie data={leadsData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} fill="#8884d8">
-                            {leadsData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
-                        </Pie>
-                        <Tooltip contentStyle={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.5rem' }} />
-                        <Legend />
-                    </PieChart>
-                </ResponsiveContainer>
-            </div>
+      {/* Stats Grid */}
+      <div>
+        <h2 className="text-xl font-bold text-gray-900 mb-4">Overview</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {isLoading ? (
+            <>
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 animate-pulse">
+                  <div className="h-12 w-12 bg-gray-200 rounded-xl mb-4"></div>
+                  <div className="h-4 bg-gray-200 rounded w-2/3 mb-2"></div>
+                  <div className="h-8 bg-gray-200 rounded w-1/2 mb-2"></div>
+                  <div className="h-3 bg-gray-200 rounded w-3/4"></div>
+                </div>
+              ))}
+            </>
+          ) : stats ? (
+            <>
+              <StatCard
+                icon={UserGroupIcon}
+                title="Total Contacts"
+                value={stats.totalContacts.toLocaleString()}
+                subtitle="All contacts in system"
+                gradient="bg-gradient-to-br from-blue-500 to-blue-600"
+                trend="+12%"
+              />
+              <StatCard
+                icon={UserCheckIcon}
+                title="Clients"
+                value={stats.totalClients.toLocaleString()}
+                subtitle="Active customers"
+                gradient="bg-gradient-to-br from-green-500 to-emerald-600"
+                trend="+8%"
+              />
+              <StatCard
+                icon={UserSearchIcon}
+                title="Prospects"
+                value={stats.totalProspects.toLocaleString()}
+                subtitle="Potential customers"
+                gradient="bg-gradient-to-br from-amber-500 to-orange-600"
+                trend="+5%"
+              />
+              <StatCard
+                icon={ChartBarIcon}
+                title="Leads"
+                value={stats.totalLeads.toLocaleString()}
+                subtitle="New opportunities"
+                gradient="bg-gradient-to-br from-indigo-500 to-purple-600"
+                trend="+15%"
+              />
+            </>
+          ) : null}
         </div>
-         <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100">
-            <h3 className="text-lg font-semibold mb-4 text-gray-800">Revenue Over Time</h3>
-            <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={salesData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                    <XAxis dataKey="name" stroke="#64748b" />
-                    <YAxis stroke="#64748b" />
-                    <Tooltip contentStyle={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.5rem' }}/>
-                    <Legend />
-                    <Line type="monotone" dataKey="revenue" stroke="#4f46e5" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 8 }} />
-                </LineChart>
-            </ResponsiveContainer>
+      </div>
+
+      {/* Quick Actions */}
+      <div>
+        <h2 className="text-xl font-bold text-gray-900 mb-4">Quick Actions</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <QuickActionCard
+            icon={UserGroupIcon}
+            title="View All Contacts"
+            description="Browse and manage your contact database"
+            href="#"
+            color="bg-blue-500"
+          />
+          <QuickActionCard
+            icon={UserCheckIcon}
+            title="Client Status"
+            description="Track client lifecycle and engagement"
+            href="#"
+            color="bg-green-500"
+          />
+          <QuickActionCard
+            icon={UserSearchIcon}
+            title="Prospect Management"
+            description="Monitor and nurture potential customers"
+            href="#"
+            color="bg-amber-500"
+          />
+          <QuickActionCard
+            icon={ChartBarIcon}
+            title="Client Segments"
+            description="Analyze customer segmentation"
+            href="#"
+            color="bg-purple-500"
+          />
+          <QuickActionCard
+            icon={TrendingUpIcon}
+            title="Sales Portal"
+            description="Access sales data entry system"
+            href="/sales-portal"
+            color="bg-indigo-500"
+          />
+          <QuickActionCard
+            icon={CalendarIcon}
+            title="Activity Log"
+            description="View recent system activity"
+            href="#"
+            color="bg-pink-500"
+          />
         </div>
+      </div>
+
+      {/* Info Banner */}
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6">
+        <div className="flex items-start gap-4">
+          <div className="flex-shrink-0">
+            <svg className="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+            </svg>
+          </div>
+          <div>
+            <h3 className="font-semibold text-gray-900 mb-1">Getting Started</h3>
+            <p className="text-sm text-gray-700">
+              Explore your contact database using the navigation menu. Use filters to find specific segments,
+              track client status, and analyze your business metrics. For data entry, visit the Sales Portal.
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

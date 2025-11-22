@@ -26,6 +26,9 @@
 .env.test.local
 .env.production.local
 
+# Database folder - contains sensitive connection strings and data
+database/
+
 #- IDEs and editors
 /.idea
 .project
@@ -40,3 +43,9 @@
 
 # Vercel
 .vercel
+
+# Sensitive business documents (keep local only)
+docs/MOU*.docx
+docs/MOU*.txt
+docs/MOU*.md
+docs/Sales-Meeting-Questions.*

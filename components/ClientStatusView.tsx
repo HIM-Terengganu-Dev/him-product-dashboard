@@ -5,12 +5,12 @@ import { UserCheckIcon, UserExclamationIcon, UserMinusIcon, DotsVerticalIcon, Us
 type Status = "New Client" | "Active" | "Churning" | "Churned";
 
 interface Client {
-  id: string;
-  name: string;
-  phone: string;
-  status: Status;
-  lastPurchaseDate: string | null;
-  lastOrderProduct: string | null;
+    id: string;
+    name: string;
+    phone: string;
+    status: Status;
+    lastPurchaseDate: string | null;
+    lastOrderProduct: string | null;
 }
 
 interface Summary {
@@ -40,26 +40,26 @@ interface KpiCardProps {
 }
 
 const KpiCard: React.FC<KpiCardProps> = ({ title, value, icon: Icon, iconColor, onClick, isActive }) => (
-    <div 
-        className={`bg-white p-6 rounded-xl shadow-md border flex items-center space-x-4 transition-all duration-200 ${onClick ? 'cursor-pointer hover:shadow-lg hover:-translate-y-1' : ''} ${isActive ? 'border-indigo-500 ring-2 ring-indigo-200' : 'border-gray-100'}`}
+    <div
+        className={`bg-white p-6 rounded-2xl shadow-lg border flex items-center space-x-4 transition-all duration-200 ${onClick ? 'cursor-pointer hover:shadow-xl hover:-translate-y-1' : ''} ${isActive ? 'border-indigo-500 ring-2 ring-indigo-200' : 'border-gray-100'}`}
         onClick={onClick}
     >
-        <div className={`p-3 rounded-full ${iconColor}`}>
-            <Icon className="h-6 w-6 text-white" />
+        <div className={`p-4 rounded-xl ${iconColor} shadow-md`}>
+            <Icon className="h-7 w-7 text-white" />
         </div>
         <div>
-            <h3 className="text-sm font-medium text-gray-500">{title}</h3>
-            <p className="text-2xl font-bold mt-1 text-gray-800">{value}</p>
+            <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wider">{title}</h3>
+            <p className="text-3xl font-bold mt-1 text-gray-900">{value}</p>
         </div>
     </div>
 );
 
 const KpiCardSkeleton = () => (
-    <div className="bg-white p-6 rounded-xl shadow-md border border-gray-100 flex items-center space-x-4 animate-pulse">
-        <div className="p-3 rounded-full bg-gray-200 w-12 h-12"></div>
+    <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 flex items-center space-x-4 animate-pulse">
+        <div className="p-4 rounded-xl bg-gray-200 w-14 h-14"></div>
         <div className="flex-1">
             <div className="h-4 bg-gray-200 rounded w-2/3 mb-2"></div>
-            <div className="h-6 bg-gray-200 rounded w-1/3"></div>
+            <div className="h-8 bg-gray-200 rounded w-1/2"></div>
         </div>
     </div>
 );
@@ -90,7 +90,7 @@ const MultiSelectDropdown = ({ options, selected, onChange, placeholder, disable
             : [...selected, value];
         onChange(newSelected);
     };
-    
+
     const displayValue = selected.length === 0
         ? placeholder
         : selected.length === 1
@@ -201,15 +201,15 @@ const ClientStatusView: React.FC = () => {
 
     const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
-        setFilters(prev => ({...prev, [name]: value }));
+        setFilters(prev => ({ ...prev, [name]: value }));
     };
 
     const handleProductFilterChange = (products: string[]) => {
-        setFilters(prev => ({...prev, product: products }));
+        setFilters(prev => ({ ...prev, product: products }));
     };
 
     const handleMarketplaceFilterChange = (marketplaces: string[]) => {
-        setFilters(prev => ({...prev, marketplace: marketplaces }));
+        setFilters(prev => ({ ...prev, marketplace: marketplaces }));
     };
 
     const chartData = useMemo(() => {
@@ -224,11 +224,11 @@ const ClientStatusView: React.FC = () => {
         if (!summary) return 0;
         return Object.values(summary).reduce((acc, count) => acc + count, 0);
     }, [summary]);
-    
+
     const handleFilterClick = (status: Status | 'All') => {
         setActiveFilter(status);
     };
-    
+
     const productOptions = useMemo(() => {
         return allProducts.map(p => ({ value: p, label: p }));
     }, [allProducts]);
@@ -260,15 +260,15 @@ const ClientStatusView: React.FC = () => {
         }
         return null;
     };
-    
+
     const SkeletonRow = () => (
-      <tr className="animate-pulse">
-        <td className="px-6 py-4 whitespace-nowrap"><div className="space-y-2"><div className="h-4 bg-gray-200 rounded w-24"></div><div className="h-3 bg-gray-200 rounded w-32"></div></div></td>
-        <td className="px-6 py-4 whitespace-nowrap"><div className="h-5 bg-gray-200 rounded-full w-20"></div></td>
-        <td className="px-6 py-4 whitespace-nowrap"><div className="h-4 bg-gray-200 rounded w-28"></div></td>
-        <td className="px-6 py-4 whitespace-nowrap"><div className="h-4 bg-gray-200 rounded w-36"></div></td>
-        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"><div className="h-5 w-5 bg-gray-200 rounded"></div></td>
-      </tr>
+        <tr className="animate-pulse">
+            <td className="px-6 py-4 whitespace-nowrap"><div className="space-y-2"><div className="h-4 bg-gray-200 rounded w-24"></div><div className="h-3 bg-gray-200 rounded w-32"></div></div></td>
+            <td className="px-6 py-4 whitespace-nowrap"><div className="h-5 bg-gray-200 rounded-full w-20"></div></td>
+            <td className="px-6 py-4 whitespace-nowrap"><div className="h-4 bg-gray-200 rounded w-28"></div></td>
+            <td className="px-6 py-4 whitespace-nowrap"><div className="h-4 bg-gray-200 rounded w-36"></div></td>
+            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"><div className="h-5 w-5 bg-gray-200 rounded"></div></td>
+        </tr>
     );
 
     const renderTableBody = () => {
@@ -287,15 +287,15 @@ const ClientStatusView: React.FC = () => {
                 <td className="px-6 py-4 whitespace-nowrap"><span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusInfo[client.status].badge}`}>{client.status}</span></td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{client.lastPurchaseDate || 'N/A'}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{client.lastOrderProduct || 'N/A'}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"><button className="text-gray-400 hover:text-indigo-600"><DotsVerticalIcon className="w-5 h-5"/></button></td>
+                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"><button className="text-gray-400 hover:text-indigo-600"><DotsVerticalIcon className="w-5 h-5" /></button></td>
             </tr>
         ));
     };
-    
+
     const Pagination = () => {
         const startItem = totalClients > 0 ? (currentPage - 1) * CLIENTS_PER_PAGE + 1 : 0;
         const endItem = Math.min(currentPage * CLIENTS_PER_PAGE, totalClients);
-    
+
         return (
             <div className="py-3 px-4 flex items-center justify-between border-t border-gray-200">
                 <div><p className="text-sm text-gray-700">Showing <span className="font-medium">{startItem}</span> to <span className="font-medium">{endItem}</span> of{' '}<span className="font-medium">{totalClients}</span> results</p></div>
@@ -330,8 +330,9 @@ const ClientStatusView: React.FC = () => {
     return (
         <div className="space-y-8">
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-                <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-md border border-gray-100">
-                    <h3 className="text-lg font-semibold text-gray-800">Client Status Distribution</h3>
+                <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-200">
+                    <h3 className="text-lg font-bold text-gray-900 mb-2">Client Status Distribution</h3>
+                    <p className="text-sm text-gray-500 mb-4">Overview of client lifecycle stages</p>
                     {isLoading && !summary ? (
                         <div className="animate-pulse flex items-center justify-center h-64">
                             <div className="w-48 h-48 bg-gray-200 rounded-full"></div>
@@ -366,7 +367,7 @@ const ClientStatusView: React.FC = () => {
                                     <Legend content={renderCustomLegend} />
                                 </PieChart>
                             </ResponsiveContainer>
-                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
+                            <div className="absolute top-[45%] left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
                                 <span className="text-3xl font-bold text-gray-800">{totalSummaryClients.toLocaleString()}</span>
                                 <p className="text-sm text-gray-500">Total Clients</p>
                             </div>
@@ -397,12 +398,15 @@ const ClientStatusView: React.FC = () => {
                 </div>
             </div>
 
-            <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
-                <div className="p-4 sm:p-6 border-b border-gray-200">
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
-                        <h3 className="text-lg font-semibold text-gray-800 mb-2 sm:mb-0">Client Status Details ({totalClients})</h3>
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+                <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div>
+                            <h3 className="text-xl font-bold text-gray-900">Client Status Details</h3>
+                            <p className="text-sm text-gray-600 mt-1">{totalClients.toLocaleString()} clients</p>
+                        </div>
                         <div className="flex flex-wrap gap-2">
-                           <button onClick={() => handleFilterClick('All')} className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${activeFilter === 'All' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>All</button>
+                            <button onClick={() => handleFilterClick('All')} className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${activeFilter === 'All' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>All</button>
                             {statuses.map(status => (
                                 <button key={status} onClick={() => handleFilterClick(status)} className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${activeFilter === status ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{status}</button>
                             ))}
@@ -413,14 +417,14 @@ const ClientStatusView: React.FC = () => {
                 <div className="px-4 sm:px-6 py-4 border-b border-gray-200 bg-gray-50/50">
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                         <input
-                           type="text"
-                           name="search"
-                           placeholder="Search by Name/Phone..."
-                           value={filters.search}
-                           onChange={handleFilterChange}
-                           className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-150 ease-in-out"
-                       />
-                       <MultiSelectDropdown
+                            type="text"
+                            name="search"
+                            placeholder="Search by Name/Phone..."
+                            value={filters.search}
+                            onChange={handleFilterChange}
+                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-150 ease-in-out"
+                        />
+                        <MultiSelectDropdown
                             options={productOptions}
                             selected={filters.product}
                             onChange={handleProductFilterChange}
@@ -435,31 +439,31 @@ const ClientStatusView: React.FC = () => {
                             disabled={isLoading}
                         />
                         <input
-                           type="date"
-                           name="startDate"
-                           value={filters.startDate}
-                           onChange={handleFilterChange}
-                           className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-150 ease-in-out"
-                           title="Start Date"
-                       />
-                       <input
-                           type="date"
-                           name="endDate"
-                           value={filters.endDate}
-                           onChange={handleFilterChange}
-                           className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-150 ease-in-out"
-                           title="End Date"
-                       />
+                            type="date"
+                            name="startDate"
+                            value={filters.startDate}
+                            onChange={handleFilterChange}
+                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-150 ease-in-out"
+                            title="Start Date"
+                        />
+                        <input
+                            type="date"
+                            name="endDate"
+                            value={filters.endDate}
+                            onChange={handleFilterChange}
+                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-150 ease-in-out"
+                            title="End Date"
+                        />
                     </div>
                 </div>
                 <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
+                        <thead className="bg-gradient-to-r from-gray-100 to-gray-50">
                             <tr>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Client</th>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Purchase Date</th>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Purchase Product</th>
+                                <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Client</th>
+                                <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Status</th>
+                                <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Last Purchase Date</th>
+                                <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Last Purchase Product</th>
                                 <th scope="col" className="relative px-6 py-3"><span className="sr-only">Actions</span></th>
                             </tr>
                         </thead>

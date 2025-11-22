@@ -37,10 +37,10 @@ export default function HomePage() {
 
   const [activeView, setActiveView] = useState<ViewType>("CRM");
   const [isSidebarOpen, setSidebarOpen] = useState(true);
-  
+
   const handleSignOut = useCallback(() => {
     if (window.google) {
-        window.google.accounts.id.disableAutoSelect();
+      window.google.accounts.id.disableAutoSelect();
     }
     localStorage.removeItem('user');
     setUser(null);
@@ -50,65 +50,65 @@ export default function HomePage() {
     setIsVerifying(true);
     setAuthError(null);
     try {
-        const decoded: { name: string, email: string, picture: string, sub: string } = jwtDecode(response.credential);
-        
-        // **NEW**: Check if the user is authorized before granting access
-        const authCheckResponse = await fetch('/api/auth/check', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: decoded.email }),
-        });
+      const decoded: { name: string, email: string, picture: string, sub: string } = jwtDecode(response.credential);
 
-        if (!authCheckResponse.ok) {
-            throw new Error('Authorization check failed.');
-        }
+      // **NEW**: Check if the user is authorized before granting access
+      const authCheckResponse = await fetch('/api/auth/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: decoded.email }),
+      });
 
-        const { authorized } = await authCheckResponse.json();
+      if (!authCheckResponse.ok) {
+        throw new Error('Authorization check failed.');
+      }
 
-        if (authorized) {
-            const newUser = {
-                name: decoded.name,
-                email: decoded.email,
-                picture: decoded.picture
-            };
-            localStorage.setItem('user', JSON.stringify(newUser));
-            setUser(newUser);
-        } else {
-            setAuthError('Access Denied: This Google account is not authorized to access the dashboard.');
-            handleSignOut(); // Ensure any lingering state is cleared
-        }
+      const { authorized } = await authCheckResponse.json();
+
+      if (authorized) {
+        const newUser = {
+          name: decoded.name,
+          email: decoded.email,
+          picture: decoded.picture
+        };
+        localStorage.setItem('user', JSON.stringify(newUser));
+        setUser(newUser);
+      } else {
+        setAuthError('Access Denied: This Google account is not authorized to access the dashboard.');
+        handleSignOut(); // Ensure any lingering state is cleared
+      }
     } catch (error) {
-        console.error("Error during authentication process:", error);
-        setAuthError('An error occurred during sign-in. Please try again.');
-        handleSignOut();
+      console.error("Error during authentication process:", error);
+      setAuthError('An error occurred during sign-in. Please try again.');
+      handleSignOut();
     } finally {
-        setIsVerifying(false);
+      setIsVerifying(false);
     }
   };
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
-        setUser(JSON.parse(storedUser));
+      setUser(JSON.parse(storedUser));
     }
 
     const initializeGSI = () => {
-        if (window.google) {
-            if (GOOGLE_CLIENT_ID) {
-                window.google.accounts.id.initialize({
-                    client_id: GOOGLE_CLIENT_ID,
-                    callback: handleCredentialResponse
-                });
-                if (!storedUser) {
-                  window.google.accounts.id.prompt();
-                }
-            }
-            setAuthInitialized(true);
-        } else {
-            setTimeout(initializeGSI, 100);
+      if (window.google) {
+        if (GOOGLE_CLIENT_ID) {
+          window.google.accounts.id.initialize({
+            client_id: GOOGLE_CLIENT_ID,
+            callback: handleCredentialResponse
+          });
+          if (!storedUser) {
+            window.google.accounts.id.prompt();
+          }
         }
+        setAuthInitialized(true);
+      } else {
+        setTimeout(initializeGSI, 100);
+      }
     };
-    
+
     initializeGSI();
   }, [GOOGLE_CLIENT_ID, handleSignOut]);
 
@@ -126,8 +126,6 @@ export default function HomePage() {
         return <ClientSegmentView />;
       case "Prospect Status":
         return <ProspectStatusView />;
-      case "Sales":
-        return <PlaceholderView title="Sales" />;
       case "Products":
         return <PlaceholderView title="Products" />;
       case "Messages":
@@ -141,8 +139,8 @@ export default function HomePage() {
 
   if (!user) {
     return (
-      <LoginView 
-        isInitialized={isAuthInitialized} 
+      <LoginView
+        isInitialized={isAuthInitialized}
         clientId={GOOGLE_CLIENT_ID}
         authError={authError}
         isVerifying={isVerifying}
@@ -152,12 +150,12 @@ export default function HomePage() {
 
   return (
     <div className="flex h-screen bg-gray-50 text-gray-800 font-sans">
-      <Sidebar activeView={activeView} setActiveView={setActiveView} isOpen={isSidebarOpen} setOpen={setSidebarOpen}/>
+      <Sidebar activeView={activeView} setActiveView={setActiveView} isOpen={isSidebarOpen} setOpen={setSidebarOpen} />
       <div className="flex-1 flex flex-col overflow-hidden">
-        <Header 
-          currentView={activeView} 
-          isSidebarOpen={isSidebarOpen} 
-          toggleSidebar={() => setSidebarOpen(p => !p)} 
+        <Header
+          currentView={activeView}
+          isSidebarOpen={isSidebarOpen}
+          toggleSidebar={() => setSidebarOpen(p => !p)}
           user={user}
           onSignOut={handleSignOut}
         />

@@ -2,74 +2,39 @@
 // It securely connects to your Neon database and fetches the data.
 // To access this data, your frontend will make a request to /api/contacts.
 
-import { Pool } from 'pg';
-import type { NextApiRequest, NextApiResponse } from 'next';
-
-// This is the shape of data your frontend expects.
-// We will transform the data from the database to match this structure.
-type ContactType = 'Client' | 'Prospect' | 'Lead';
-
-interface Contact {
-  id: string;
-  name: string;
-  phone: string;
-  type: ContactType;
-  lastPurchaseDate: string | null;
-  lastPurchaseProduct: string | null;
-  lastMarketplace: string | null;
-}
-
-interface TypeSummaryData {
-  type: ContactType;
-  count: number;
-}
-
-interface MarketplaceSummaryData {
-  marketplace: string;
-  count: number;
-}
-
-interface SummaryData {
-    typeSummary: TypeSummaryData[];
-    marketplaceSummary: MarketplaceSummaryData[];
-    totalContacts: number;
-}
-
-interface FilterOptions {
-    allMarketplaces: string[];
-    allProducts: string[];
-}
-
-interface UnifiedResponse {
-  contacts: Contact[];
-  totalContactsInTable: number;
-  totalPages: number;
-  summary: SummaryData;
-  filterOptions: FilterOptions;
-}
-
-interface ApiRequest extends NextApiRequest {
-  method?: string;
-  query: { [key: string]: string | string[] | undefined };
-}
-
-const pool = new Pool({
-  connectionString: process.env.POSTGRES_URL,
-});
+import type { NextApiResponse } from 'next';
+import { pool } from '../../lib/db';
+import {
+  validateMethod,
+  parsePagination,
+  getQueryString,
+  parseQueryArray,
+  buildMarketplaceFilter,
+  buildProductFilter,
+  formatDate,
+  sendErrorResponse,
+  sendSuccessResponse,
+} from '../../lib/api-helpers';
+import type {
+  ApiRequest,
+  Contact,
+  ContactType,
+  UnifiedResponse,
+  SummaryData,
+  TypeSummaryData,
+  MarketplaceSummaryData,
+  FilterOptions,
+} from '../../types';
 
 export default async function handler(
   req: ApiRequest,
   res: NextApiResponse<UnifiedResponse | { error: string }>
 ) {
-  if (req.method !== 'GET') {
-    res.setHeader('Allow', ['GET']);
-    return res.status(405).end(`Method ${req.method} Not Allowed`);
+  if (!validateMethod(req, res, ['GET'])) {
+    return;
   }
   
-  const page = parseInt(req.query.page as string) || 1;
-  const limit = parseInt(req.query.limit as string) || 10;
-  const offset = (page - 1) * limit;
-
+  const { page, limit, offset } = parsePagination(req.query);
   const { name, type, marketplace, product, startDate, endDate } = req.query;
 
   const whereClauses: string[] = [];
@@ -80,45 +45,29 @@ export default async function handler(
     whereClauses.push(`name ILIKE $${paramIndex++}`);
     queryParams.push(`%${name}%`);
   }
-  if (type && typeof type === 'string') {
-      const typeArray = type.split(',');
+  const typeArray = parseQueryArray(req.query, 'type');
       if (typeArray.length > 0) {
           whereClauses.push(`type ILIKE ANY($${paramIndex++}::text[])`);
           queryParams.push(typeArray);
       }
-  }
-  if (marketplace && typeof marketplace === 'string') {
-      let marketplaceArray = marketplace.split(',');
-      const hasNone = marketplaceArray.includes('_NONE_');
-      marketplaceArray = marketplaceArray.filter(m => m !== '_NONE_');
-      
-      const conditions: string[] = [];
-      if (hasNone) {
-          conditions.push(`(last_marketplace IS NULL OR TRIM(last_marketplace) = '')`);
-      }
-      if (marketplaceArray.length > 0) {
-          conditions.push(`last_marketplace = ANY($${paramIndex++}::text[])`);
-          queryParams.push(marketplaceArray);
-      }
-      if (conditions.length > 0) {
-          whereClauses.push(`(${conditions.join(' OR ')})`);
+
+  const marketplaceStr = getQueryString(req.query, 'marketplace');
+  if (marketplaceStr) {
+    const marketplaceArray = marketplaceStr.split(',');
+    const filter = buildMarketplaceFilter(marketplaceArray, paramIndex, queryParams);
+    if (filter.clause) {
+      whereClauses.push(filter.clause);
+      paramIndex = filter.nextParamIndex;
       }
   }
-  if (product && typeof product === 'string') {
-      let productArray = product.split(',');
-      const hasNone = productArray.includes('_NONE_');
-      productArray = productArray.filter(p => p !== '_NONE_');
-      
-      const conditions: string[] = [];
-      if (hasNone) {
-          conditions.push(`(last_order_product IS NULL OR TRIM(last_order_product) = '')`);
-      }
-      if (productArray.length > 0) {
-          conditions.push(`last_order_product = ANY($${paramIndex++}::text[])`);
-          queryParams.push(productArray);
-      }
-      if (conditions.length > 0) {
-          whereClauses.push(`(${conditions.join(' OR ')})`);
+
+  const productStr = getQueryString(req.query, 'product');
+  if (productStr) {
+    const productArray = productStr.split(',');
+    const filter = buildProductFilter(productArray, paramIndex, queryParams);
+    if (filter.clause) {
+      whereClauses.push(filter.clause);
+      paramIndex = filter.nextParamIndex;
       }
   }
   if (startDate && typeof startDate === 'string') {
@@ -159,11 +108,7 @@ export default async function handler(
       const totalContactsInTable = dataResult.rows.length > 0 ? parseInt(dataResult.rows[0].total_count, 10) : 0;
       const totalPages = Math.ceil(totalContactsInTable / limit);
       const contacts: Contact[] = dataResult.rows.map(row => {
-        let lastPurchaseDate: string | null = null;
-        if (row.last_order_date) {
-            const d = new Date(row.last_order_date);
-            lastPurchaseDate = new Intl.DateTimeFormat('sv', { timeZone: 'Asia/Kuala_Lumpur', year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
-        }
+        const lastPurchaseDate = formatDate(row.last_order_date);
         const validTypes: ContactType[] = ['Client', 'Prospect', 'Lead'];
         let contactType: ContactType = 'Lead';
         if (typeof row.type === 'string') {
@@ -197,16 +142,21 @@ export default async function handler(
         allProducts: allProductsResult.rows.map(row => row.product)
       };
 
-      const responseData: UnifiedResponse = { contacts, totalContactsInTable, totalPages, summary, filterOptions };
+      const responseData: UnifiedResponse = {
+        contacts,
+        totalContactsInTable,
+        totalPages,
+        summary,
+        filterOptions,
+      };
       
-      res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
-      res.status(200).json(responseData);
+      sendSuccessResponse(res, responseData);
 
     } finally {
       client.release();
     }
   } catch (error) {
     console.error('Database query failed:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    sendErrorResponse(res, 500, 'Internal Server Error');
   }
 }

@@ -1,30 +1,20 @@
-import { Pool } from 'pg';
-import type { NextApiRequest, NextApiResponse } from 'next';
-
-// FIX: Corrected the type for NextApiRequest to include the `body` property,
-// resolving an error that was caused by it being missing from the custom type.
-interface ApiRequest extends NextApiRequest {
-    method?: string;
-    body: any;
-}
-
-const pool = new Pool({
-  connectionString: process.env.POSTGRES_URL,
-});
+import type { NextApiResponse } from 'next';
+import { pool } from '../../../lib/db';
+import { validateMethod, sendErrorResponse, sendSuccessResponse } from '../../../lib/api-helpers';
+import type { ApiRequest } from '../../../types';
 
 export default async function handler(
   req: ApiRequest,
   res: NextApiResponse<{ authorized: boolean } | { error: string }>
 ) {
-  if (req.method !== 'POST') {
-    res.setHeader('Allow', ['POST']);
-    return res.status(405).end(`Method ${req.method} Not Allowed`);
+  if (!validateMethod(req, res, ['POST'])) {
+    return;
   }
 
   const { email } = req.body;
 
   if (!email || typeof email !== 'string') {
-    return res.status(400).json({ error: 'Email is required.' });
+    return sendErrorResponse(res, 400, 'Email is required.');
   }
 
   try {
@@ -37,15 +27,15 @@ export default async function handler(
         [email.toLowerCase()] // Store and check emails in a consistent case
       );
       
-      // FIX: Safely handle the case where rowCount might be null.
+      // Safely handle the case where rowCount might be null.
       const isAuthorized = (result.rowCount ?? 0) > 0;
 
-      res.status(200).json({ authorized: isAuthorized });
+      sendSuccessResponse(res, { authorized: isAuthorized });
     } finally {
       client.release();
     }
   } catch (error) {
     console.error('Authorization check failed:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    sendErrorResponse(res, 500, 'Internal Server Error');
   }
 }

@@ -1,16 +1,14 @@
-import { Pool } from 'pg';
-import type { NextApiRequest, NextApiResponse } from 'next';
-
-// FIX: Corrected the type for NextApiRequest to include the `query` property,
-// resolving an error that was caused by it being missing from the custom type.
-interface ApiRequest extends NextApiRequest {
-    method?: string;
-    query: { [key: string]: string | string[] | undefined };
-}
-
-const pool = new Pool({
-  connectionString: process.env.POSTGRES_URL,
-});
+import type { NextApiResponse } from 'next';
+import { pool } from '../../../lib/db';
+import {
+  validateMethod,
+  getQueryString,
+  parseQueryArray,
+  buildMarketplaceFilter,
+  buildProductFilter,
+  sendErrorResponse,
+} from '../../../lib/api-helpers';
+import type { ApiRequest } from '../../../types';
 
 function escapeCSVValue(value: any): string {
     if (value === null || value === undefined) {
@@ -41,69 +39,58 @@ export default async function handler(
   req: ApiRequest,
   res: NextApiResponse<string | { error: string }>
 ) {
-  if (req.method !== 'GET') {
-    res.setHeader('Allow', ['GET']);
-    return res.status(405).end(`Method ${req.method} Not Allowed`);
+  if (!validateMethod(req, res, ['GET'])) {
+    return;
   }
-  
+
   const { name, type, marketplace, product, startDate, endDate } = req.query;
 
   const whereClauses: string[] = [];
   const queryParams: (string | number | string[])[] = [];
   let paramIndex = 1;
 
-  if (name && typeof name === 'string') {
+  const nameStr = getQueryString(req.query, 'name');
+  if (nameStr) {
     whereClauses.push(`name ILIKE $${paramIndex++}`);
-    queryParams.push(`%${name}%`);
+    queryParams.push(`%${nameStr}%`);
   }
-  if (type && typeof type === 'string') {
-      const typeArray = type.split(',');
-      if (typeArray.length > 0) {
-          whereClauses.push(`type ILIKE ANY($${paramIndex++}::text[])`);
-          queryParams.push(typeArray);
-      }
+
+  const typeArray = parseQueryArray(req.query, 'type');
+  if (typeArray.length > 0) {
+    whereClauses.push(`type ILIKE ANY($${paramIndex++}::text[])`);
+    queryParams.push(typeArray);
   }
-  if (marketplace && typeof marketplace === 'string') {
-      let marketplaceArray = marketplace.split(',');
-      const hasNone = marketplaceArray.includes('_NONE_');
-      marketplaceArray = marketplaceArray.filter(m => m !== '_NONE_');
-      
-      const conditions: string[] = [];
-      if (hasNone) {
-          conditions.push(`(last_marketplace IS NULL OR TRIM(last_marketplace) = '')`);
-      }
-      if (marketplaceArray.length > 0) {
-          conditions.push(`last_marketplace = ANY($${paramIndex++}::text[])`);
-          queryParams.push(marketplaceArray);
-      }
-      if (conditions.length > 0) {
-          whereClauses.push(`(${conditions.join(' OR ')})`);
-      }
+
+  const marketplaceStr = getQueryString(req.query, 'marketplace');
+  if (marketplaceStr) {
+    const marketplaceArray = marketplaceStr.split(',');
+    const filter = buildMarketplaceFilter(marketplaceArray, paramIndex, queryParams);
+    if (filter.clause) {
+      whereClauses.push(filter.clause);
+      paramIndex = filter.nextParamIndex;
+    }
   }
-  if (product && typeof product === 'string') {
-      let productArray = product.split(',');
-      const hasNone = productArray.includes('_NONE_');
-      productArray = productArray.filter(p => p !== '_NONE_');
-      
-      const conditions: string[] = [];
-      if (hasNone) {
-          conditions.push(`(last_order_product IS NULL OR TRIM(last_order_product) = '')`);
-      }
-      if (productArray.length > 0) {
-          conditions.push(`last_order_product = ANY($${paramIndex++}::text[])`);
-          queryParams.push(productArray);
-      }
-      if (conditions.length > 0) {
-          whereClauses.push(`(${conditions.join(' OR ')})`);
-      }
+
+  const productStr = getQueryString(req.query, 'product');
+  if (productStr) {
+    const productArray = productStr.split(',');
+    const filter = buildProductFilter(productArray, paramIndex, queryParams);
+    if (filter.clause) {
+      whereClauses.push(filter.clause);
+      paramIndex = filter.nextParamIndex;
+    }
   }
-  if (startDate && typeof startDate === 'string') {
+
+  const startDateStr = getQueryString(req.query, 'startDate');
+  if (startDateStr) {
     whereClauses.push(`last_order_date >= $${paramIndex++}`);
-    queryParams.push(startDate);
+    queryParams.push(startDateStr);
   }
-  if (endDate && typeof endDate === 'string') {
+
+  const endDateStr = getQueryString(req.query, 'endDate');
+  if (endDateStr) {
     whereClauses.push(`last_order_date <= $${paramIndex++}`);
-    queryParams.push(endDate);
+    queryParams.push(endDateStr);
   }
 
   const whereString = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
@@ -131,6 +118,6 @@ export default async function handler(
     }
   } catch (error) {
     console.error('Database query for export failed:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    sendErrorResponse(res, 500, 'Internal Server Error');
   }
 }
