@@ -162,7 +162,7 @@ function LiveGMVUploadContent() {
                                 <li>Select the report date (the date this data represents)</li>
                                 <li>Upload your Live GMV Excel file from TikTok Shop</li>
                                 <li>The system will automatically process and update existing data for that date</li>
-                                <li>Campaign names will be automatically grouped using [bracket] notation</li>
+                                <li>Campaign names will be automatically grouped using [brackets], (parentheses), or {curly braces} notation</li>
                                 <li>All data is validated before insertion</li>
                             </ul>
                         </div>
@@ -392,7 +392,7 @@ function LiveGMVUploadContent() {
                         </table>
                     </div>
                     <p className="text-xs text-gray-500 mt-3">
-                        Note: Campaign names without spaces (e.g., "HIMCoffeedrsamhan") will be automatically used as group names with brackets added (e.g., "[HIMCoffeedrsamhan] HIMCoffeedrsamhan").
+                        Note: Campaign names without spaces (e.g., "HIMCoffeedrsamhan") will be automatically used as group names with brackets added (e.g., "[HIMCoffeedrsamhan] HIMCoffeedrsamhan"). You can also use [Group], (Group), or {Group} notation to specify the group directly.
                     </p>
                 </div>
             </div>

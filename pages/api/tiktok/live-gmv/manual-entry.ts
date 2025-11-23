@@ -56,6 +56,32 @@ export default async function handler(
       });
     }
 
+    // Detect conflicts: same campaign_id with different groups
+    const campaignGroupMap = new Map<string, string>();
+    const conflicts: string[] = [];
+    
+    body.data.forEach((row, index) => {
+      if (row.campaign_id) {
+        const existingGroup = campaignGroupMap.get(row.campaign_id);
+        if (existingGroup && existingGroup !== row.campaign_group) {
+          conflicts.push(
+            `Campaign ID ${row.campaign_id} has conflicting groups: "${existingGroup}" and "${row.campaign_group}"`
+          );
+        } else if (!existingGroup) {
+          campaignGroupMap.set(row.campaign_id, row.campaign_group);
+        }
+      }
+    });
+
+    if (conflicts.length > 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Group conflicts detected',
+        message: 'The same campaign ID appears with different groups. Please ensure each campaign ID has a consistent group.',
+        conflicts,
+      });
+    }
+
     const client = await pool.connect();
     let recordsInserted = 0;
     let recordsUpdated = 0;

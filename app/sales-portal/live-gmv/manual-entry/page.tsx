@@ -72,17 +72,33 @@ function ManualEntryContent() {
     );
   };
 
-  // Auto-calculate campaign_group from campaign_name using bracket notation
+  // Auto-calculate campaign_group from campaign_name using bracket, parenthesis, or curly brace notation
   const getCampaignGroup = (campaignName: string): string => {
     if (!campaignName) return '';
+    
+    // Check for square brackets []
     const bracketMatch = campaignName.match(/\[([^\]]+)\]/);
     if (bracketMatch) {
-      return bracketMatch[1];
+      return bracketMatch[1].trim();
     }
-    // If no brackets, check if it's a single word (no spaces)
+    
+    // Check for parentheses ()
+    const parenMatch = campaignName.match(/\(([^)]+)\)/);
+    if (parenMatch) {
+      return parenMatch[1].trim();
+    }
+    
+    // Check for curly braces {}
+    const braceMatch = campaignName.match(/\{([^}]+)\}/);
+    if (braceMatch) {
+      return braceMatch[1].trim();
+    }
+    
+    // If no group markers, check if it's a single word (no spaces)
     if (!campaignName.includes(' ')) {
       return campaignName;
     }
+    
     return '';
   };
 
@@ -102,6 +118,31 @@ function ManualEntryContent() {
 
     if (validRows.length === 0) {
       alert('Please enter at least one valid campaign record');
+      return;
+    }
+
+    // Check for conflicts: same campaign_id with different groups
+    const campaignGroupMap = new Map<string, string>();
+    const conflicts: string[] = [];
+    
+    validRows.forEach((row, index) => {
+      const campaignId = row.campaign_id.trim();
+      const campaignGroup = getCampaignGroup(row.campaign_name) || row.campaign_name.trim();
+      
+      if (campaignId) {
+        const existingGroup = campaignGroupMap.get(campaignId);
+        if (existingGroup && existingGroup !== campaignGroup) {
+          conflicts.push(
+            `Row ${index + 1}: Campaign ID "${campaignId}" has conflicting groups: "${existingGroup}" and "${campaignGroup}"`
+          );
+        } else if (!existingGroup) {
+          campaignGroupMap.set(campaignId, campaignGroup);
+        }
+      }
+    });
+
+    if (conflicts.length > 0) {
+      alert(`Group conflicts detected:\n\n${conflicts.join('\n')}\n\nPlease ensure each campaign ID has a consistent group.`);
       return;
     }
 
@@ -213,7 +254,7 @@ function ManualEntryContent() {
               <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
                 <li>Select the report date for this data</li>
                 <li>Enter campaign information in the table below</li>
-                <li>Campaign group is automatically detected from campaign name using [bracket] notation</li>
+                <li>Campaign group is automatically detected from campaign name using [brackets], (parentheses), or {curly braces} notation</li>
                 <li>Click &quot;+ Add Row&quot; to add more campaigns</li>
                 <li>Click the &quot;×&quot; button to remove a row</li>
                 <li>Click &quot;Save Data&quot; when done</li>

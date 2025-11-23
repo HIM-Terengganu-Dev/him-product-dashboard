@@ -165,6 +165,9 @@ export default async function handler(
     // Parse and validate data
     const parsedData: ParsedRow[] = [];
     const errors: string[] = [];
+    
+    // Track campaign_id to group mapping for conflict detection
+    const campaignIdToGroup = new Map<string, string>();
 
     // Find single-word campaign names to use as base groups
     const baseCampaignNames = new Set<string>();
@@ -187,13 +190,35 @@ export default async function handler(
           return;
         }
 
+        // Helper function to extract group from brackets, parentheses, or curly braces
+        const extractGroup = (name: string): { group: string; hasGroupMarker: boolean } => {
+          // Check for square brackets []
+          const bracketMatch = name.match(/\[([^\]]+)\]/);
+          if (bracketMatch) {
+            return { group: bracketMatch[1].trim(), hasGroupMarker: true };
+          }
+          
+          // Check for parentheses ()
+          const parenMatch = name.match(/\(([^)]+)\)/);
+          if (parenMatch) {
+            return { group: parenMatch[1].trim(), hasGroupMarker: true };
+          }
+          
+          // Check for curly braces {}
+          const braceMatch = name.match(/\{([^}]+)\}/);
+          if (braceMatch) {
+            return { group: braceMatch[1].trim(), hasGroupMarker: true };
+          }
+          
+          return { group: '', hasGroupMarker: false };
+        };
+
         // Determine campaign group
+        const { group: extractedGroup, hasGroupMarker } = extractGroup(campaignName);
         let campaignGroup = '';
         
-        // Check if already has brackets
-        const bracketMatch = campaignName.match(/\[([^\]]+)\]/);
-        if (bracketMatch) {
-          campaignGroup = bracketMatch[1].trim();
+        if (hasGroupMarker) {
+          campaignGroup = extractedGroup;
         } else {
           // Find matching base campaign name
           let matched = false;
@@ -209,7 +234,7 @@ export default async function handler(
           if (!matched) {
             if (campaignName.includes(' ')) {
               // Multi-word name without a matching base - might be an error
-              errors.push(`Row ${index + 2}: Cannot determine group for "${campaignName}"`);
+              errors.push(`Row ${index + 2}: Cannot determine group for "${campaignName}". Use [Group], (Group), or {Group} notation.`);
               return;
             } else {
               campaignGroup = campaignName;
@@ -218,7 +243,7 @@ export default async function handler(
         }
 
         // Add brackets to campaign name if not present
-        const finalCampaignName = bracketMatch 
+        const finalCampaignName = hasGroupMarker 
           ? campaignName 
           : `[${campaignGroup}] ${campaignName}`;
 
@@ -360,6 +385,31 @@ export default async function handler(
       }
     });
 
+    // Detect conflicts: same campaign_id with different groups
+    const campaignGroupMap = new Map<string, string>();
+    const conflicts: string[] = [];
+    
+    parsedData.forEach((row, index) => {
+      const existingGroup = campaignGroupMap.get(row.campaign_id);
+      if (existingGroup && existingGroup !== row.campaign_group) {
+        conflicts.push(
+          `Campaign ID ${row.campaign_id} has conflicting groups: "${existingGroup}" and "${row.campaign_group}"`
+        );
+      } else if (!existingGroup) {
+        campaignGroupMap.set(row.campaign_id, row.campaign_group);
+      }
+    });
+
+    if (conflicts.length > 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Group conflicts detected',
+        message: 'The same campaign ID appears with different groups. Please ensure each campaign ID has a consistent group.',
+        errors: [...errors, ...conflicts],
+        conflicts,
+      });
+    }
+
     if (parsedData.length === 0) {
       return res.status(400).json({
         success: false,
@@ -367,6 +417,11 @@ export default async function handler(
         message: 'No valid data found in the uploaded file',
         errors,
       });
+    }
+    
+    // If we have parsing errors but also valid data, we'll proceed but include errors in response
+    if (errors.length > 0 && parsedData.length > 0) {
+      console.log(`[WARNING] Upload proceeded with ${errors.length} parsing errors`);
     }
 
     // Insert/Update data in database
