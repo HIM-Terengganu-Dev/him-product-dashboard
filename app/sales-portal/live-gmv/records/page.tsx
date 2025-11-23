@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 
 interface DateRecord {
@@ -20,11 +20,7 @@ export default function LiveGMVRecordsPage() {
     const [deletingDate, setDeletingDate] = useState<string | null>(null);
     const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
-    useEffect(() => {
-        fetchRecords();
-    }, []);
-
-    const fetchRecords = async () => {
+    const fetchRecords = useCallback(async () => {
         setLoading(true);
         setError(null);
         try {
@@ -41,7 +37,11 @@ export default function LiveGMVRecordsPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
+
+    useEffect(() => {
+        fetchRecords();
+    }, [fetchRecords]);
 
     const handleDelete = async (date: string) => {
         if (confirmDelete !== date) {
