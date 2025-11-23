@@ -488,6 +488,14 @@ export default async function handler(
           ]);
           if (verifyResult.rows.length > 0) {
             const savedRow = verifyResult.rows[0];
+            // Convert to numbers for comparison (database returns numeric as number or string)
+            const savedRevenue = typeof savedRow.gross_revenue === 'string' 
+              ? parseFloat(savedRow.gross_revenue) 
+              : Number(savedRow.gross_revenue) || 0;
+            const expectedRevenue = typeof recordWithRevenue.gross_revenue === 'string'
+              ? parseFloat(recordWithRevenue.gross_revenue)
+              : Number(recordWithRevenue.gross_revenue) || 0;
+            
             console.log('[VERIFY] Data saved to database:', {
               campaign_id: savedRow.campaign_id,
               campaign_name: savedRow.campaign_name,
@@ -495,11 +503,11 @@ export default async function handler(
               cost_in_db: savedRow.cost,
               gross_revenue_expected: recordWithRevenue.gross_revenue,
               cost_expected: recordWithRevenue.cost,
-              match: parseFloat(savedRow.gross_revenue || 0) === parseFloat(recordWithRevenue.gross_revenue || 0)
+              match: savedRevenue === expectedRevenue
             });
             
             // Warn if gross_revenue doesn't match
-            if (parseFloat(savedRow.gross_revenue || 0) !== parseFloat(recordWithRevenue.gross_revenue || 0)) {
+            if (savedRevenue !== expectedRevenue) {
               console.log('[WARNING] Gross revenue mismatch! Expected:', recordWithRevenue.gross_revenue, 'Got:', savedRow.gross_revenue);
             }
           }
