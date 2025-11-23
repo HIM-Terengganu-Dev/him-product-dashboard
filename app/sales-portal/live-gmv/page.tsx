@@ -43,50 +43,48 @@ export default function LiveGMVDashboard() {
 
     // Fetch data when date is loaded and whenever date or comparison period changes
     useEffect(() => {
-        if (dateLoaded && selectedDate) {
-            fetchData();
-        }
+        if (!dateLoaded || !selectedDate) return;
+
+        const fetchData = async () => {
+            setLoading(true);
+            setError(null);
+            try {
+                const [metricsRes, groupsRes] = await Promise.all([
+                    fetch(`/api/tiktok/live-gmv/metrics?date=${selectedDate}&comparisonPeriod=${comparisonPeriod}`),
+                    fetch(`/api/tiktok/live-gmv/groups?date=${selectedDate}`)
+                ]);
+
+                if (!metricsRes.ok) {
+                    const errorData = await metricsRes.json();
+                    throw new Error(errorData.message || 'Failed to fetch metrics');
+                }
+                if (!groupsRes.ok) {
+                    throw new Error('Failed to fetch group data');
+                }
+
+                const metricsData = await metricsRes.json();
+                const groupsData = await groupsRes.json();
+
+                if (metricsData.data) {
+                    setMetrics(metricsData.data);
+                } else {
+                    throw new Error('Invalid metrics data received');
+                }
+                
+                if (groupsData.data) {
+                    setGroups(Array.isArray(groupsData.data) ? groupsData.data : []);
+                } else {
+                    setGroups([]);
+                }
+            } catch (err) {
+                setError(err instanceof Error ? err.message : 'Failed to fetch data');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchData();
     }, [selectedDate, comparisonPeriod, dateLoaded]);
-
-    const fetchData = async () => {
-        if (!selectedDate) return;
-        
-        setLoading(true);
-        setError(null);
-        try {
-            const [metricsRes, groupsRes] = await Promise.all([
-                fetch(`/api/tiktok/live-gmv/metrics?date=${selectedDate}&comparisonPeriod=${comparisonPeriod}`),
-                fetch(`/api/tiktok/live-gmv/groups?date=${selectedDate}`)
-            ]);
-
-            if (!metricsRes.ok) {
-                const errorData = await metricsRes.json();
-                throw new Error(errorData.message || 'Failed to fetch metrics');
-            }
-            if (!groupsRes.ok) {
-                throw new Error('Failed to fetch group data');
-            }
-
-            const metricsData = await metricsRes.json();
-            const groupsData = await groupsRes.json();
-
-            if (metricsData.data) {
-                setMetrics(metricsData.data);
-            } else {
-                throw new Error('Invalid metrics data received');
-            }
-            
-            if (groupsData.data) {
-                setGroups(Array.isArray(groupsData.data) ? groupsData.data : []);
-            } else {
-                setGroups([]);
-            }
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to fetch data');
-        } finally {
-            setLoading(false);
-        }
-    };
 
     const formatCurrency = (value: number | null | undefined) => {
         if (value === null || value === undefined || isNaN(value)) return 'RM 0.00';
