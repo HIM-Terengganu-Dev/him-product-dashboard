@@ -9,14 +9,48 @@ export default function LiveGMVDashboard() {
     const [error, setError] = useState<string | null>(null);
     const [metrics, setMetrics] = useState<MetricsWithChange | null>(null);
     const [groups, setGroups] = useState<GroupPerformance[]>([]);
-    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+    const [selectedDate, setSelectedDate] = useState<string | null>(null);
+    const [dateLoaded, setDateLoaded] = useState(false);
     const [comparisonPeriod, setComparisonPeriod] = useState<'yesterday' | 'lastWeek' | 'lastMonth' | 'lastThreeMonths'>('yesterday');
 
+    // Fetch latest available date on mount
     useEffect(() => {
-        fetchData();
-    }, [selectedDate]);
+        const fetchLatestDate = async () => {
+            try {
+                const response = await fetch('/api/tiktok/live-gmv/latest-date');
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success && data.data?.latest_date) {
+                        setSelectedDate(data.data.latest_date);
+                    } else {
+                        // If no data found, use today's date as fallback
+                        setSelectedDate(new Date().toISOString().split('T')[0]);
+                    }
+                } else {
+                    // Fallback to today's date if API fails
+                    setSelectedDate(new Date().toISOString().split('T')[0]);
+                }
+            } catch (err) {
+                // Fallback to today's date on error
+                setSelectedDate(new Date().toISOString().split('T')[0]);
+            } finally {
+                setDateLoaded(true);
+            }
+        };
+
+        fetchLatestDate();
+    }, []);
+
+    // Fetch data when date is loaded and whenever date or comparison period changes
+    useEffect(() => {
+        if (dateLoaded && selectedDate) {
+            fetchData();
+        }
+    }, [selectedDate, comparisonPeriod, dateLoaded]);
 
     const fetchData = async () => {
+        if (!selectedDate) return;
+        
         setLoading(true);
         setError(null);
         try {
@@ -26,7 +60,8 @@ export default function LiveGMVDashboard() {
             ]);
 
             if (!metricsRes.ok) {
-                throw new Error('Failed to fetch metrics');
+                const errorData = await metricsRes.json();
+                throw new Error(errorData.message || 'Failed to fetch metrics');
             }
             if (!groupsRes.ok) {
                 throw new Error('Failed to fetch group data');
@@ -110,6 +145,12 @@ export default function LiveGMVDashboard() {
                                 📋 Manage Records
                             </Link>
                             <Link
+                                href="/sales-portal/live-gmv/manual-entry"
+                                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                            >
+                                ✏️ Manual Entry
+                            </Link>
+                            <Link
                                 href="/sales-portal/live-gmv/upload"
                                 className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-colors shadow-md"
                             >
@@ -134,10 +175,30 @@ export default function LiveGMVDashboard() {
                             <label className="text-sm font-semibold text-gray-700">Date:</label>
                             <input
                                 type="date"
-                                value={selectedDate}
+                                value={selectedDate || ''}
                                 onChange={(e) => setSelectedDate(e.target.value)}
                                 className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                             />
+                            {selectedDate && (
+                                <button
+                                    onClick={async () => {
+                                        try {
+                                            const response = await fetch('/api/tiktok/live-gmv/latest-date');
+                                            if (response.ok) {
+                                                const data = await response.json();
+                                                if (data.success && data.data?.latest_date) {
+                                                    setSelectedDate(data.data.latest_date);
+                                                }
+                                            }
+                                        } catch (err) {
+                                            console.error('Failed to fetch latest date:', err);
+                                        }
+                                    }}
+                                    className="px-3 py-2 text-xs font-medium text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors"
+                                >
+                                    📅 Latest
+                                </button>
+                            )}
                         </div>
                         <div className="flex items-center gap-2">
                             <span className="text-sm font-semibold text-gray-700">Compare:</span>

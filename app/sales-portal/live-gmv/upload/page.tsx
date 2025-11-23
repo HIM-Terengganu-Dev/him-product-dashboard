@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 
@@ -13,7 +13,7 @@ interface UploadResult {
     errors?: string[];
 }
 
-export default function LiveGMVUploadPage() {
+function LiveGMVUploadContent() {
     const searchParams = useSearchParams();
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [reportDate, setReportDate] = useState(new Date().toISOString().split('T')[0]);
@@ -397,6 +397,18 @@ export default function LiveGMVUploadPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function LiveGMVUploadPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+            </div>
+        }>
+            <LiveGMVUploadContent />
+        </Suspense>
     );
 }
 
