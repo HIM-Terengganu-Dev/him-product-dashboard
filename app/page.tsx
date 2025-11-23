@@ -9,6 +9,7 @@ import Header from '../components/Header';
 import ClientStatusView from '../components/ClientStatusView';
 import ClientSegmentView from '../components/ClientSegmentView';
 import ProspectStatusView from '../components/ProspectStatusView';
+import SalesView from '../components/SalesView';
 import LoginView from '../components/LoginView';
 import { jwtDecode } from 'jwt-decode';
 
@@ -126,6 +127,8 @@ export default function HomePage() {
         return <ClientSegmentView />;
       case "Prospect Status":
         return <ProspectStatusView />;
+      case "Sales":
+        return <SalesView />;
       case "Products":
         return <PlaceholderView title="Products" />;
       case "Messages":

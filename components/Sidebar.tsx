@@ -31,7 +31,7 @@ const navItems: NavItem[] = [
       { name: 'Client Segment', view: 'Client Segment' },
     ],
   },
-  { name: 'Sales', href: '/sales-portal', icon: SalesIcon },
+  { name: 'Sales', view: 'Sales', icon: SalesIcon },
   { name: 'Products', view: 'Products', icon: ProductsIcon },
   { name: 'Messages', view: 'Messages', icon: MessagesIcon },
   { name: 'Settings', view: 'Settings', icon: SettingsIcon },

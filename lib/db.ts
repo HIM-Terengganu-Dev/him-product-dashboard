@@ -3,7 +3,7 @@ import { Pool } from 'pg';
 // Shared database connection pool
 // This ensures we only have one pool instance across all API routes
 const pool = new Pool({
-  connectionString: process.env.POSTGRES_URL,
+  connectionString: process.env.POSTGRES_URL_HIM_CRM,
 });
 
 // Handle pool errors
