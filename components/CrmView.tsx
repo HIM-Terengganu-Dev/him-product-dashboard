@@ -70,13 +70,13 @@ interface KpiCardProps {
 }
 
 const KpiCard: React.FC<KpiCardProps> = ({ title, value, icon: Icon, iconColor }) => (
-    <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 flex items-center space-x-4 hover:shadow-xl transition-all duration-200 hover:-translate-y-1">
-        <div className={`p-4 rounded-xl ${iconColor} shadow-md`}>
-            <Icon className="h-7 w-7 text-white" />
+    <div className="bg-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg border border-gray-100 flex items-center space-x-3 sm:space-x-4 hover:shadow-xl transition-all duration-200 hover:-translate-y-1">
+        <div className={`p-3 sm:p-4 rounded-xl ${iconColor} shadow-md flex-shrink-0`}>
+            <Icon className="h-6 w-6 sm:h-7 sm:w-7 text-white" />
         </div>
-        <div>
-            <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wider">{title}</h3>
-            <p className="text-3xl font-bold mt-1 text-gray-900">{value}</p>
+        <div className="min-w-0 flex-1">
+            <h3 className="text-xs sm:text-sm font-semibold text-gray-600 uppercase tracking-wider truncate">{title}</h3>
+            <p className="text-2xl sm:text-3xl font-bold mt-1 text-gray-900 truncate">{value}</p>
         </div>
     </div>
 );
@@ -320,16 +320,29 @@ const CrmView: React.FC = () => {
 
     const renderTableBody = () => {
         if (isLoading && contacts.length === 0) return Array.from({ length: CONTACTS_PER_PAGE }).map((_, index) => <SkeletonRow key={index} />);
-        if (error) return (<tr><td colSpan={6} className="text-center py-10"><div className="text-red-500 font-medium">Error: {error}</div><p className="text-gray-500 text-sm mt-2">Could not load contact data.</p></td></tr>);
-        if (contacts.length === 0) return (<tr><td colSpan={6} className="text-center py-10"><div className="text-gray-500">No contacts found for the selected filters.</div></td></tr>);
+        if (error) return (<tr><td colSpan={4} className="text-center py-10 px-4"><div className="text-red-500 font-medium text-sm">Error: {error}</div><p className="text-gray-500 text-xs sm:text-sm mt-2">Could not load contact data.</p></td></tr>);
+        if (contacts.length === 0) return (<tr><td colSpan={4} className="text-center py-10 px-4"><div className="text-gray-500 text-sm">No contacts found for the selected filters.</div></td></tr>);
         return contacts.map((contact) => (
             <tr key={contact.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap"><div><div className="text-sm font-medium text-gray-900">{contact.name}</div><div className="text-sm text-gray-500">{contact.phone}</div></div></td>
-                <td className="px-6 py-4 whitespace-nowrap"><span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${typeStyles[contact.type].badge}`}>{contact.type}</span></td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{contact.lastMarketplace || 'N/A'}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{contact.lastPurchaseDate || 'N/A'}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{contact.lastPurchaseProduct || 'N/A'}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"><button className="text-gray-400 hover:text-indigo-600"><DotsVerticalIcon className="w-5 h-5" /></button></td>
+                <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                    <div>
+                        <div className="text-sm font-medium text-gray-900">{contact.name}</div>
+                        <div className="text-xs sm:text-sm text-gray-500">{contact.phone}</div>
+                        {/* Show marketplace on mobile in name cell */}
+                        <div className="text-xs text-gray-500 mt-1 sm:hidden">{contact.lastMarketplace || 'N/A'}</div>
+                    </div>
+                </td>
+                <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${typeStyles[contact.type].badge}`}>{contact.type}</span>
+                </td>
+                <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-sm text-gray-500 hidden sm:table-cell">{contact.lastMarketplace || 'N/A'}</td>
+                <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-sm text-gray-500 hidden md:table-cell">{contact.lastPurchaseDate || 'N/A'}</td>
+                <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-sm text-gray-500 hidden lg:table-cell">{contact.lastPurchaseProduct || 'N/A'}</td>
+                <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <button className="text-gray-400 hover:text-indigo-600">
+                        <DotsVerticalIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+                    </button>
+                </td>
             </tr>
         ));
     };
@@ -359,17 +372,17 @@ const CrmView: React.FC = () => {
     const renderMarketplaceLegend = () => (<div className="flex justify-center flex-wrap gap-x-2 gap-y-1 mt-2 text-xs">{marketplaceSummary.map(entry => (<div key={entry.marketplace} onClick={() => handleMarketplaceLegendClick(entry.marketplace)} className={`flex items-center cursor-pointer transition-all duration-200 rounded-full px-2 py-0.5 ${activeMarketplaces.has(entry.marketplace) ? 'opacity-100 bg-gray-50' : 'opacity-40'}`}><span className="w-2 h-2 rounded-full mr-1.5 shrink-0" style={{ backgroundColor: marketplaceColorMap.get(entry.marketplace) }}></span><span className="text-gray-700">{entry.marketplace}</span></div>))}</div>);
 
     return (
-        <div className="space-y-8">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-200">
-                    <h3 className="text-lg font-bold text-gray-900 mb-2">Contacts by Type</h3>
-                    <p className="text-sm text-gray-500 mb-4">Distribution of contact segments</p>
-                    {isLoading && !summaryData ? <ChartSkeleton /> : error ? <div className="text-red-500 text-center py-10">{error}</div> : (<>
-                        <div className="relative w-full h-72">
+        <div className="space-y-6 sm:space-y-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
+                <div className="bg-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-200">
+                    <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-1 sm:mb-2">Contacts by Type</h3>
+                    <p className="text-xs sm:text-sm text-gray-500 mb-3 sm:mb-4">Distribution of contact segments</p>
+                    {isLoading && !summaryData ? <ChartSkeleton /> : error ? <div className="text-red-500 text-center py-10 text-sm">{error}</div> : (<>
+                        <div className="relative w-full h-64 sm:h-72">
                             <ResponsiveContainer width="100%" height="100%">
                                 <PieChart>
                                     {/* FIX: Cast `filteredTypeSummary` to `any` to resolve recharts TypeScript error. */}
-                                    <Pie data={filteredTypeSummary as any} cx="50%" cy="50%" innerRadius={70} outerRadius={100} fill="#8884d8" paddingAngle={5} dataKey="count" nameKey="type" cornerRadius={5}>
+                                    <Pie data={filteredTypeSummary as any} cx="50%" cy="50%" innerRadius={60} outerRadius={90} fill="#8884d8" paddingAngle={5} dataKey="count" nameKey="type" cornerRadius={5}>
                                         {filteredTypeSummary.map((entry) => <Cell key={`cell-${entry.type}`} fill={typeStyles[entry.type].chart} />)}
                                     </Pie>
                                     <Tooltip wrapperStyle={{ zIndex: 1000 }} content={renderCustomTooltip(totalContactsSummary)} cursor={{ fill: 'transparent' }} />
@@ -377,21 +390,21 @@ const CrmView: React.FC = () => {
                                 </PieChart>
                             </ResponsiveContainer>
                             <div className="absolute top-[45%] left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
-                                <span className="text-3xl font-bold text-gray-800">{totalContactsSummary.toLocaleString()}</span>
-                                <p className="text-sm text-gray-500">Total Contacts</p>
+                                <span className="text-2xl sm:text-3xl font-bold text-gray-800">{totalContactsSummary.toLocaleString()}</span>
+                                <p className="text-xs sm:text-sm text-gray-500">Total Contacts</p>
                             </div>
                         </div>
                     </>)}
                 </div>
-                <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-200">
-                    <h3 className="text-lg font-bold text-gray-900 mb-2">Contacts by Last Marketplace</h3>
-                    <p className="text-sm text-gray-500 mb-4">Contact distribution across marketplaces</p>
-                    {isLoading && !summaryData ? <ChartSkeleton /> : error ? <div className="text-red-500 text-center py-10">{error}</div> : (<>
-                        <div className="relative w-full h-72">
+                <div className="bg-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-200">
+                    <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-1 sm:mb-2">Contacts by Last Marketplace</h3>
+                    <p className="text-xs sm:text-sm text-gray-500 mb-3 sm:mb-4">Contact distribution across marketplaces</p>
+                    {isLoading && !summaryData ? <ChartSkeleton /> : error ? <div className="text-red-500 text-center py-10 text-sm">{error}</div> : (<>
+                        <div className="relative w-full h-64 sm:h-72">
                             <ResponsiveContainer width="100%" height="100%">
                                 <PieChart>
                                     {/* FIX: Cast `filteredMarketplaceSummary` to `any` to resolve recharts TypeScript error. */}
-                                    <Pie data={filteredMarketplaceSummary as any} cx="50%" cy="50%" innerRadius={70} outerRadius={100} fill="#8884d8" paddingAngle={5} dataKey="count" nameKey="marketplace" cornerRadius={5}>
+                                    <Pie data={filteredMarketplaceSummary as any} cx="50%" cy="50%" innerRadius={60} outerRadius={90} fill="#8884d8" paddingAngle={5} dataKey="count" nameKey="marketplace" cornerRadius={5}>
                                         {filteredMarketplaceSummary.map((entry) => <Cell key={`cell-${entry.marketplace}`} fill={marketplaceColorMap.get(entry.marketplace)} />)}
                                     </Pie>
                                     <Tooltip wrapperStyle={{ zIndex: 1000 }} content={renderCustomTooltip(totalMarketplaceContacts)} cursor={{ fill: 'transparent' }} />
@@ -399,8 +412,8 @@ const CrmView: React.FC = () => {
                                 </PieChart>
                             </ResponsiveContainer>
                             <div className="absolute top-[45%] left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
-                                <span className="text-3xl font-bold text-gray-800">{totalMarketplaceContacts.toLocaleString()}</span>
-                                <p className="text-sm text-gray-500 leading-tight">Marketplace<br />Contacts</p>
+                                <span className="text-2xl sm:text-3xl font-bold text-gray-800">{totalMarketplaceContacts.toLocaleString()}</span>
+                                <p className="text-xs sm:text-sm text-gray-500 leading-tight">Marketplace<br />Contacts</p>
                             </div>
                         </div>
                     </>)}
@@ -408,9 +421,9 @@ const CrmView: React.FC = () => {
             </div>
 
             {isLoading && !summaryData ? (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6"><KpiCardSkeleton /><KpiCardSkeleton /><KpiCardSkeleton /></div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6"><KpiCardSkeleton /><KpiCardSkeleton /><KpiCardSkeleton /></div>
             ) : !error && summaryData ? (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
                     <KpiCard title="Total Contacts" value={(summaryData.totalContacts).toLocaleString()} icon={UserGroupIcon} iconColor="bg-blue-500" />
                     <KpiCard title="Clients" value={clientCount} icon={UserCheckIcon} iconColor="bg-green-500" />
                     <KpiCard title="Prospects" value={prospectCount} icon={UserSearchIcon} iconColor="bg-yellow-500" />
@@ -418,9 +431,9 @@ const CrmView: React.FC = () => {
             ) : null}
 
             <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
-                <div className="p-4 sm:p-6"><h3 className="text-lg font-semibold text-gray-800">All Contacts ({totalContactsInTable})</h3></div>
-                <div className="px-4 sm:px-6 py-4 border-t border-b border-gray-200 bg-gray-50/50">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="p-4 sm:p-6"><h3 className="text-base sm:text-lg font-semibold text-gray-800">All Contacts ({totalContactsInTable})</h3></div>
+                <div className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 border-t border-b border-gray-200 bg-gray-50/50">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                         <input type="text" name="name" placeholder="Filter by Name..." value={filters.name} onChange={handleTextFilterChange} className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                         <MultiSelectDropdown options={[{ value: 'Client', label: 'Client' }, { value: 'Prospect', label: 'Prospect' }, { value: 'Lead', label: 'Lead' }]} selected={filters.type} onChange={(selected) => handleMultiSelectChange('type', selected)} placeholder="All Contact Types" />
                         <MultiSelectDropdown options={marketplaceOptions} selected={filters.marketplace} onChange={(selected) => handleMultiSelectChange('marketplace', selected)} placeholder="All Last Marketplaces" disabled={isLoading} />
@@ -429,16 +442,16 @@ const CrmView: React.FC = () => {
                         <input type="date" name="endDate" value={filters.endDate} onChange={handleTextFilterChange} className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" title="End Date" />
                     </div>
                 </div>
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                             <tr>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Marketplace</th>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Purchase Date</th>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Purchase Product</th>
-                                <th scope="col" className="relative px-6 py-3"><span className="sr-only">Actions</span></th>
+                                <th scope="col" className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Name</th>
+                                <th scope="col" className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Type</th>
+                                <th scope="col" className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap hidden sm:table-cell">Last Marketplace</th>
+                                <th scope="col" className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap hidden md:table-cell">Last Purchase Date</th>
+                                <th scope="col" className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap hidden lg:table-cell">Last Purchase Product</th>
+                                <th scope="col" className="relative px-4 sm:px-6 py-3"><span className="sr-only">Actions</span></th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">{renderTableBody()}</tbody>

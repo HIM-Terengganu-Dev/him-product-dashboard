@@ -44,25 +44,25 @@ const LoginView: React.FC<LoginViewProps> = ({ isInitialized, clientId, authErro
   };
 
   return (
-    <div className="flex items-center justify-center h-screen bg-gray-50">
-      <div className="text-center p-10 bg-white rounded-2xl shadow-xl border border-gray-100 max-w-md w-full">
-        <div className="flex justify-center mb-8">
-            <span className="text-4xl font-extrabold text-indigo-700">HIM Product</span>
+    <div className="flex items-center justify-center h-screen bg-gray-50 p-4">
+      <div className="text-center p-6 sm:p-8 md:p-10 bg-white rounded-xl sm:rounded-2xl shadow-xl border border-gray-100 max-w-md w-full">
+        <div className="flex justify-center mb-6 sm:mb-8">
+            <span className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-indigo-700">HIM Product</span>
         </div>
-        <h1 className="text-2xl font-bold text-gray-800 mb-2">Welcome to the Dashboard</h1>
-        <p className="text-gray-500 mb-8">Please sign in with your Google account to continue.</p>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-800 mb-2">Welcome to the Dashboard</h1>
+        <p className="text-sm sm:text-base text-gray-500 mb-6 sm:mb-8">Please sign in with your Google account to continue.</p>
         
         {renderButtonState()}
 
         {authError && (
-            <div className="mt-4 text-red-600 bg-red-50 p-3 rounded-lg text-sm font-medium">
+            <div className="mt-4 text-red-600 bg-red-50 p-3 rounded-lg text-xs sm:text-sm font-medium">
                 {authError}
             </div>
         )}
 
         {!clientId && isInitialized && (
-            <div className="mt-4 text-red-500 bg-red-50 p-3 rounded-lg text-sm">
-                <strong>Configuration Error:</strong> Google Client ID is missing. Please create a <code>.env.local</code> file and add your <code>NEXT_PUBLIC_GOOGLE_CLIENT_ID</code> to enable sign-in.
+            <div className="mt-4 text-red-500 bg-red-50 p-3 rounded-lg text-xs sm:text-sm">
+                <strong>Configuration Error:</strong> Google Client ID is missing. Please create a <code className="text-xs">.env.local</code> file and add your <code className="text-xs">NEXT_PUBLIC_GOOGLE_CLIENT_ID</code> to enable sign-in.
             </div>
          )}
       </div>

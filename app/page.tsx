@@ -37,7 +37,7 @@ export default function HomePage() {
   const [isVerifying, setIsVerifying] = useState(false);
 
   const [activeView, setActiveView] = useState<ViewType>("CRM");
-  const [isSidebarOpen, setSidebarOpen] = useState(true);
+  const [isSidebarOpen, setSidebarOpen] = useState(false); // Closed on mobile by default
 
   const handleSignOut = useCallback(() => {
     if (window.google) {
@@ -151,10 +151,25 @@ export default function HomePage() {
     );
   }
 
+  // Auto-open sidebar on desktop, close on mobile
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 1024) {
+        setSidebarOpen(true);
+      } else {
+        setSidebarOpen(false);
+      }
+    };
+    
+    handleResize(); // Set initial state
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   return (
-    <div className="flex h-screen bg-gray-50 text-gray-800 font-sans">
+    <div className="flex h-screen bg-gray-50 text-gray-800 font-sans overflow-hidden">
       <Sidebar activeView={activeView} setActiveView={setActiveView} isOpen={isSidebarOpen} setOpen={setSidebarOpen} />
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden w-full lg:w-auto">
         <Header
           currentView={activeView}
           isSidebarOpen={isSidebarOpen}
@@ -162,7 +177,7 @@ export default function HomePage() {
           user={user}
           onSignOut={handleSignOut}
         />
-        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-4 md:p-6 lg:p-8">
+        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-3 sm:p-4 md:p-6 lg:p-8">
           {renderView()}
         </main>
       </div>

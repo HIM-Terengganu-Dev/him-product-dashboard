@@ -259,19 +259,32 @@ const ClientSegmentView: React.FC = () => {
             return Array.from({ length: CLIENTS_PER_PAGE }).map((_, index) => <SkeletonRow key={index} />);
         }
         if (error) {
-            return <tr><td colSpan={6} className="text-center py-10 text-red-500 font-medium">{error}</td></tr>;
+            return <tr><td colSpan={4} className="text-center py-10 px-4 text-red-500 font-medium text-sm">{error}</td></tr>;
         }
         if (clients.length === 0) {
-            return <tr><td colSpan={6} className="text-center py-10 text-gray-500">No clients found for this filter.</td></tr>;
+            return <tr><td colSpan={4} className="text-center py-10 px-4 text-gray-500 text-sm">No clients found for this filter.</td></tr>;
         }
         return clients.map((client) => (
             <tr key={client.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap"><div><div className="text-sm font-medium text-gray-900">{client.name}</div><div className="text-sm text-gray-500">{client.phone}</div></div></td>
-                <td className="px-6 py-4 whitespace-nowrap"><span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${segmentInfo[client.segment].badge}`}>{client.segment}</span></td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatCurrency(client.totalSpent)}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatCurrency(client.aov)}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{client.totalOrders}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"><button className="text-gray-400 hover:text-indigo-600"><DotsVerticalIcon className="w-5 h-5" /></button></td>
+                <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                    <div>
+                        <div className="text-sm font-medium text-gray-900">{client.name}</div>
+                        <div className="text-xs sm:text-sm text-gray-500">{client.phone}</div>
+                        {/* Show orders on mobile in name cell */}
+                        <div className="text-xs text-gray-500 mt-1 lg:hidden">{client.totalOrders} orders</div>
+                    </div>
+                </td>
+                <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${segmentInfo[client.segment].badge}`}>{client.segment}</span>
+                </td>
+                <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-sm text-gray-500">{formatCurrency(client.totalSpent)}</td>
+                <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-sm text-gray-500 hidden md:table-cell">{formatCurrency(client.aov)}</td>
+                <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-sm text-gray-500 hidden lg:table-cell">{client.totalOrders}</td>
+                <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <button className="text-gray-400 hover:text-indigo-600">
+                        <DotsVerticalIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+                    </button>
+                </td>
             </tr>
         ));
     };
@@ -312,10 +325,10 @@ const ClientSegmentView: React.FC = () => {
     };
 
     return (
-        <div className="space-y-8">
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-                <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-md border border-gray-100">
-                    <h3 className="text-lg font-semibold text-gray-800">Client Segment Distribution</h3>
+        <div className="space-y-6 sm:space-y-8">
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-6">
+                <div className="lg:col-span-2 bg-white p-4 sm:p-6 rounded-xl shadow-md border border-gray-100">
+                    <h3 className="text-base sm:text-lg font-semibold text-gray-800">Client Segment Distribution</h3>
                     {isLoading && !summary ? (
                         <div className="animate-pulse flex items-center justify-center h-72">
                             <div className="w-48 h-48 bg-gray-200 rounded-full"></div>
@@ -323,15 +336,15 @@ const ClientSegmentView: React.FC = () => {
                     ) : error ? (
                         <div className="text-red-500 text-center py-10">Could not load chart data.</div>
                     ) : (
-                        <div className="relative w-full h-72">
+                        <div className="relative w-full h-64 sm:h-72">
                             <ResponsiveContainer width="100%" height="100%">
                                 <PieChart>
                                     <Pie
                                         data={chartData as any}
                                         cx="50%"
                                         cy="50%"
-                                        innerRadius={70}
-                                        outerRadius={100}
+                                        innerRadius={60}
+                                        outerRadius={90}
                                         fill="#8884d8"
                                         paddingAngle={5}
                                         dataKey="value"
@@ -351,13 +364,13 @@ const ClientSegmentView: React.FC = () => {
                                 </PieChart>
                             </ResponsiveContainer>
                             <div className="absolute top-[45%] left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
-                                <span className="text-3xl font-bold text-gray-800">{totalSummaryClients.toLocaleString()}</span>
-                                <p className="text-sm text-gray-500">Total Clients</p>
+                                <span className="text-2xl sm:text-3xl font-bold text-gray-800">{totalSummaryClients.toLocaleString()}</span>
+                                <p className="text-xs sm:text-sm text-gray-500">Total Clients</p>
                             </div>
                         </div>
                     )}
                 </div>
-                <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="lg:col-span-3 grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                     {isLoading && !summary ? (
                         <>
                             <KpiCardSkeleton />
@@ -383,19 +396,19 @@ const ClientSegmentView: React.FC = () => {
 
             <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
                 <div className="p-4 sm:p-6 border-b border-gray-200">
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
-                        <h3 className="text-lg font-semibold text-gray-800 mb-2 sm:mb-0">Client Segment Details ({totalClients})</h3>
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                        <h3 className="text-base sm:text-lg font-semibold text-gray-800">Client Segment Details ({totalClients})</h3>
                         <div className="flex flex-wrap gap-2">
-                            <button onClick={() => handleFilterClick('All')} className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${activeFilter === 'All' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>All</button>
+                            <button onClick={() => handleFilterClick('All')} className={`px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-lg transition-colors ${activeFilter === 'All' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>All</button>
                             {segments.map(segment => (
-                                <button key={segment} onClick={() => handleFilterClick(segment)} className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${activeFilter === segment ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{segment}</button>
+                                <button key={segment} onClick={() => handleFilterClick(segment)} className={`px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-lg transition-colors ${activeFilter === segment ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{segment}</button>
                             ))}
                         </div>
                     </div>
                 </div>
                 {/* Filter Section */}
-                <div className="px-4 sm:px-6 py-4 border-b border-gray-200 bg-gray-50/50">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 border-b border-gray-200 bg-gray-50/50">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                         <div className="w-full">
                             <input
                                 type="text"
@@ -417,16 +430,16 @@ const ClientSegmentView: React.FC = () => {
                         </div>
                     </div>
                 </div>
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                             <tr>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Client</th>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Segment</th>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Spent</th>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">AOV</th>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Orders</th>
-                                <th scope="col" className="relative px-6 py-3"><span className="sr-only">Actions</span></th>
+                                <th scope="col" className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Client</th>
+                                <th scope="col" className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Segment</th>
+                                <th scope="col" className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Total Spent</th>
+                                <th scope="col" className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap hidden md:table-cell">AOV</th>
+                                <th scope="col" className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap hidden lg:table-cell">Total Orders</th>
+                                <th scope="col" className="relative px-4 sm:px-6 py-3"><span className="sr-only">Actions</span></th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">

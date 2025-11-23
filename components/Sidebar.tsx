@@ -55,19 +55,36 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView, isOpen, se
   const inactiveSubItemClass = "text-gray-500 hover:bg-indigo-50 hover:text-indigo-600";
 
   return (
-    <div className={`bg-white text-gray-700 flex flex-col transition-all duration-300 ease-in-out border-r border-gray-200 ${isOpen ? 'w-64' : 'w-20'}`}>
-      <div className="flex items-center justify-between p-4 h-20 border-b border-gray-200">
-        <div className={`flex items-center transition-opacity duration-300 ${isOpen ? 'pl-2' : 'justify-center w-full'}`}>
-          {isOpen ? (
-            <span className="text-2xl font-bold text-indigo-700">HIM Product</span>
-          ) : (
-            <span className="text-2xl font-bold text-indigo-700">HP</span>
-          )}
+    <>
+      {/* Mobile backdrop */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+          onClick={() => setOpen(false)}
+        />
+      )}
+      
+      {/* Sidebar */}
+      <div className={`
+        bg-white text-gray-700 flex flex-col transition-all duration-300 ease-in-out border-r border-gray-200
+        fixed lg:static inset-y-0 left-0 z-50
+        ${isOpen ? 'w-64' : 'w-20 lg:w-20 -translate-x-full lg:translate-x-0'}
+      `}>
+        <div className="flex items-center justify-between p-4 h-20 border-b border-gray-200">
+          <div className={`flex items-center transition-opacity duration-300 ${isOpen ? 'pl-2' : 'justify-center w-full'}`}>
+            {isOpen ? (
+              <span className="text-xl sm:text-2xl font-bold text-indigo-700">HIM Product</span>
+            ) : (
+              <span className="text-xl sm:text-2xl font-bold text-indigo-700">HP</span>
+            )}
+          </div>
+          <button onClick={() => setOpen(!isOpen)} className="p-2 rounded-full hover:bg-gray-100 hidden lg:block">
+            <ChevronLeftIcon className={`w-6 h-6 text-gray-600 transition-transform duration-300 ${!isOpen && 'rotate-180'}`} />
+          </button>
+          <button onClick={() => setOpen(false)} className="p-2 rounded-full hover:bg-gray-100 lg:hidden">
+            <ChevronLeftIcon className="w-6 h-6 text-gray-600" />
+          </button>
         </div>
-        <button onClick={() => setOpen(!isOpen)} className="p-2 rounded-full hover:bg-gray-100 hidden lg:block">
-          <ChevronLeftIcon className={`w-6 h-6 text-gray-600 transition-transform duration-300 ${!isOpen && 'rotate-180'}`} />
-        </button>
-      </div>
       <nav className="flex-1 px-3 py-4 overflow-y-auto">
         {navItems.map((item) => (
           <div key={item.name}>

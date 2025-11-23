@@ -276,18 +276,31 @@ const ClientStatusView: React.FC = () => {
             return Array.from({ length: CLIENTS_PER_PAGE }).map((_, index) => <SkeletonRow key={index} />);
         }
         if (error) {
-            return <tr><td colSpan={5} className="text-center py-10 text-red-500 font-medium">{error}</td></tr>;
+            return <tr><td colSpan={3} className="text-center py-10 px-4 text-red-500 font-medium text-sm">{error}</td></tr>;
         }
         if (clients.length === 0) {
-            return <tr><td colSpan={5} className="text-center py-10 text-gray-500">No clients found for this filter.</td></tr>;
+            return <tr><td colSpan={3} className="text-center py-10 px-4 text-gray-500 text-sm">No clients found for this filter.</td></tr>;
         }
         return clients.map((client) => (
             <tr key={client.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap"><div><div className="text-sm font-medium text-gray-900">{client.name}</div><div className="text-sm text-gray-500">{client.phone}</div></div></td>
-                <td className="px-6 py-4 whitespace-nowrap"><span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusInfo[client.status].badge}`}>{client.status}</span></td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{client.lastPurchaseDate || 'N/A'}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{client.lastOrderProduct || 'N/A'}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"><button className="text-gray-400 hover:text-indigo-600"><DotsVerticalIcon className="w-5 h-5" /></button></td>
+                <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                    <div>
+                        <div className="text-sm font-medium text-gray-900">{client.name}</div>
+                        <div className="text-xs sm:text-sm text-gray-500">{client.phone}</div>
+                        {/* Show date on mobile in name cell */}
+                        <div className="text-xs text-gray-500 mt-1 md:hidden">{client.lastPurchaseDate || 'N/A'}</div>
+                    </div>
+                </td>
+                <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusInfo[client.status].badge}`}>{client.status}</span>
+                </td>
+                <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-sm text-gray-500 hidden md:table-cell">{client.lastPurchaseDate || 'N/A'}</td>
+                <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-sm text-gray-500 hidden lg:table-cell">{client.lastOrderProduct || 'N/A'}</td>
+                <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <button className="text-gray-400 hover:text-indigo-600">
+                        <DotsVerticalIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+                    </button>
+                </td>
             </tr>
         ));
     };
@@ -328,11 +341,11 @@ const ClientStatusView: React.FC = () => {
     };
 
     return (
-        <div className="space-y-8">
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-                <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-200">
-                    <h3 className="text-lg font-bold text-gray-900 mb-2">Client Status Distribution</h3>
-                    <p className="text-sm text-gray-500 mb-4">Overview of client lifecycle stages</p>
+        <div className="space-y-6 sm:space-y-8">
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-6">
+                <div className="lg:col-span-2 bg-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-200">
+                    <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-1 sm:mb-2">Client Status Distribution</h3>
+                    <p className="text-xs sm:text-sm text-gray-500 mb-3 sm:mb-4">Overview of client lifecycle stages</p>
                     {isLoading && !summary ? (
                         <div className="animate-pulse flex items-center justify-center h-64">
                             <div className="w-48 h-48 bg-gray-200 rounded-full"></div>
@@ -347,8 +360,8 @@ const ClientStatusView: React.FC = () => {
                                         data={chartData as any}
                                         cx="50%"
                                         cy="50%"
-                                        innerRadius={70}
-                                        outerRadius={100}
+                                        innerRadius={60}
+                                        outerRadius={90}
                                         fill="#8884d8"
                                         paddingAngle={5}
                                         dataKey="value"
@@ -368,13 +381,13 @@ const ClientStatusView: React.FC = () => {
                                 </PieChart>
                             </ResponsiveContainer>
                             <div className="absolute top-[45%] left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
-                                <span className="text-3xl font-bold text-gray-800">{totalSummaryClients.toLocaleString()}</span>
-                                <p className="text-sm text-gray-500">Total Clients</p>
+                                <span className="text-2xl sm:text-3xl font-bold text-gray-800">{totalSummaryClients.toLocaleString()}</span>
+                                <p className="text-xs sm:text-sm text-gray-500">Total Clients</p>
                             </div>
                         </div>
                     )}
                 </div>
-                <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="lg:col-span-3 grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                     {isLoading && !summary ? (
                         <>
                             <KpiCardSkeleton />
@@ -398,24 +411,24 @@ const ClientStatusView: React.FC = () => {
                 </div>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-                <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="bg-white rounded-xl sm:rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+                <div className="p-4 sm:p-6 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
                         <div>
-                            <h3 className="text-xl font-bold text-gray-900">Client Status Details</h3>
-                            <p className="text-sm text-gray-600 mt-1">{totalClients.toLocaleString()} clients</p>
+                            <h3 className="text-lg sm:text-xl font-bold text-gray-900">Client Status Details</h3>
+                            <p className="text-xs sm:text-sm text-gray-600 mt-1">{totalClients.toLocaleString()} clients</p>
                         </div>
                         <div className="flex flex-wrap gap-2">
-                            <button onClick={() => handleFilterClick('All')} className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${activeFilter === 'All' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>All</button>
+                            <button onClick={() => handleFilterClick('All')} className={`px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-lg transition-colors ${activeFilter === 'All' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>All</button>
                             {statuses.map(status => (
-                                <button key={status} onClick={() => handleFilterClick(status)} className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${activeFilter === status ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{status}</button>
+                                <button key={status} onClick={() => handleFilterClick(status)} className={`px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-lg transition-colors ${activeFilter === status ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{status}</button>
                             ))}
                         </div>
                     </div>
                 </div>
                 {/* Filter Section */}
-                <div className="px-4 sm:px-6 py-4 border-b border-gray-200 bg-gray-50/50">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                <div className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 border-b border-gray-200 bg-gray-50/50">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
                         <input
                             type="text"
                             name="search"
@@ -456,15 +469,15 @@ const ClientStatusView: React.FC = () => {
                         />
                     </div>
                 </div>
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gradient-to-r from-gray-100 to-gray-50">
                             <tr>
-                                <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Client</th>
-                                <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Status</th>
-                                <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Last Purchase Date</th>
-                                <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Last Purchase Product</th>
-                                <th scope="col" className="relative px-6 py-3"><span className="sr-only">Actions</span></th>
+                                <th scope="col" className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap">Client</th>
+                                <th scope="col" className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap">Status</th>
+                                <th scope="col" className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap hidden md:table-cell">Last Purchase Date</th>
+                                <th scope="col" className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap hidden lg:table-cell">Last Purchase Product</th>
+                                <th scope="col" className="relative px-4 sm:px-6 py-3"><span className="sr-only">Actions</span></th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
