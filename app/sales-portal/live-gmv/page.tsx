@@ -45,6 +45,8 @@ export default function LiveGMVDashboard() {
     useEffect(() => {
         if (!dateLoaded || !selectedDate) return;
 
+        let cancelled = false;
+
         const fetchData = async () => {
             setLoading(true);
             setError(null);
@@ -53,6 +55,8 @@ export default function LiveGMVDashboard() {
                     fetch(`/api/tiktok/live-gmv/metrics?date=${selectedDate}&comparisonPeriod=${comparisonPeriod}`),
                     fetch(`/api/tiktok/live-gmv/groups?date=${selectedDate}`)
                 ]);
+
+                if (cancelled) return;
 
                 if (!metricsRes.ok) {
                     const errorData = await metricsRes.json();
@@ -64,6 +68,8 @@ export default function LiveGMVDashboard() {
 
                 const metricsData = await metricsRes.json();
                 const groupsData = await groupsRes.json();
+
+                if (cancelled) return;
 
                 if (metricsData.data) {
                     setMetrics(metricsData.data);
@@ -77,13 +83,22 @@ export default function LiveGMVDashboard() {
                     setGroups([]);
                 }
             } catch (err) {
-                setError(err instanceof Error ? err.message : 'Failed to fetch data');
+                if (!cancelled) {
+                    setError(err instanceof Error ? err.message : 'Failed to fetch data');
+                }
             } finally {
-                setLoading(false);
+                if (!cancelled) {
+                    setLoading(false);
+                }
             }
         };
 
         fetchData();
+
+        return () => {
+            cancelled = true;
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedDate, comparisonPeriod, dateLoaded]);
 
     const formatCurrency = (value: number | null | undefined) => {
