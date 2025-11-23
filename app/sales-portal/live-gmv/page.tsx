@@ -88,7 +88,8 @@ export default function LiveGMVDashboard() {
         }
     };
 
-    const formatCurrency = (value: number) => {
+    const formatCurrency = (value: number | null | undefined) => {
+        if (value === null || value === undefined || isNaN(value)) return 'RM 0.00';
         return new Intl.NumberFormat('ms-MY', {
             style: 'currency',
             currency: 'MYR',
@@ -96,7 +97,8 @@ export default function LiveGMVDashboard() {
         }).format(value);
     };
 
-    const formatNumber = (value: number) => {
+    const formatNumber = (value: number | null | undefined) => {
+        if (value === null || value === undefined || isNaN(value)) return '0';
         return value.toLocaleString('ms-MY');
     };
 
@@ -274,7 +276,7 @@ export default function LiveGMVDashboard() {
                                     <div className="flex items-start justify-between mb-2 sm:mb-3">
                                         <div className="flex-1 min-w-0">
                                             <p className="text-xs sm:text-sm font-semibold text-gray-600 uppercase tracking-wider">1. Cost</p>
-                                            <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1 sm:mt-2 truncate">{formatCurrency(metrics.total_cost)}</p>
+                                            <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1 sm:mt-2 truncate">{formatCurrency(metrics?.total_cost)}</p>
                                             <p className="text-xs text-gray-500 mt-1">Total Ad Spend</p>
                                         </div>
                                         <div className="p-2 sm:p-3 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 shadow-md flex-shrink-0 ml-2">
@@ -295,7 +297,7 @@ export default function LiveGMVDashboard() {
                                     <div className="flex items-start justify-between mb-2 sm:mb-3">
                                         <div className="flex-1 min-w-0">
                                             <p className="text-xs sm:text-sm font-semibold text-gray-600 uppercase tracking-wider">2. Orders (SKU)</p>
-                                            <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1 sm:mt-2 truncate">{formatNumber(metrics.total_orders)}</p>
+                                            <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1 sm:mt-2 truncate">{formatNumber(metrics?.total_orders)}</p>
                                             <p className="text-xs text-gray-500 mt-1">Total Orders</p>
                                         </div>
                                         <div className="p-2 sm:p-3 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 shadow-md flex-shrink-0 ml-2">
@@ -316,7 +318,7 @@ export default function LiveGMVDashboard() {
                                     <div className="flex items-start justify-between mb-2 sm:mb-3">
                                         <div className="flex-1 min-w-0">
                                             <p className="text-xs sm:text-sm font-semibold text-gray-600 uppercase tracking-wider">3. Gross Revenue</p>
-                                            <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1 sm:mt-2 truncate">{formatCurrency(metrics.total_revenue)}</p>
+                                            <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1 sm:mt-2 truncate">{formatCurrency(metrics?.total_revenue)}</p>
                                             <p className="text-xs text-gray-500 mt-1">Total Sales</p>
                                         </div>
                                         <div className="p-2 sm:p-3 rounded-xl bg-gradient-to-br from-green-500 to-green-600 shadow-md flex-shrink-0 ml-2">
@@ -337,7 +339,7 @@ export default function LiveGMVDashboard() {
                                     <div className="flex items-start justify-between mb-2 sm:mb-3">
                                         <div className="flex-1 min-w-0">
                                             <p className="text-xs sm:text-sm font-semibold text-gray-600 uppercase tracking-wider">4. Cost per Purchase</p>
-                                            <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1 sm:mt-2 truncate">{formatCurrency(metrics.cost_per_order)}</p>
+                                            <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1 sm:mt-2 truncate">{formatCurrency(metrics?.cost_per_order)}</p>
                                             <p className="text-xs text-gray-500 mt-1">Cost ÷ Orders</p>
                                         </div>
                                         <div className="p-2 sm:p-3 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 shadow-md flex-shrink-0 ml-2">
@@ -358,7 +360,7 @@ export default function LiveGMVDashboard() {
                                     <div className="flex items-start justify-between mb-2 sm:mb-3">
                                         <div className="flex-1 min-w-0">
                                             <p className="text-xs sm:text-sm font-semibold text-gray-600 uppercase tracking-wider">5. ROAS</p>
-                                            <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1 sm:mt-2 truncate">{metrics.roas.toFixed(2)}</p>
+                                            <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1 sm:mt-2 truncate">{(metrics?.roas ?? 0).toFixed(2)}</p>
                                             <p className="text-xs text-gray-500 mt-1">Return on Ad Spend</p>
                                         </div>
                                         <div className="p-2 sm:p-3 rounded-xl bg-gradient-to-br from-pink-500 to-pink-600 shadow-md flex-shrink-0 ml-2">
@@ -377,11 +379,11 @@ export default function LiveGMVDashboard() {
                                 {/* Summary Card */}
                                 <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6 text-white">
                                     <p className="text-xs sm:text-sm font-semibold uppercase tracking-wider opacity-90">Summary</p>
-                                    <p className="text-xl sm:text-2xl font-bold mt-1 sm:mt-2">{formatNumber(metrics.num_campaigns)} Campaigns</p>
-                                    <p className="text-xs sm:text-sm opacity-90 mt-1">Across {formatNumber(metrics.num_groups)} Accounts</p>
+                                    <p className="text-xl sm:text-2xl font-bold mt-1 sm:mt-2">{formatNumber(metrics?.num_campaigns)} Campaigns</p>
+                                    <p className="text-xs sm:text-sm opacity-90 mt-1">Across {formatNumber(metrics?.num_groups)} Accounts</p>
                                     <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-white/20">
                                         <p className="text-xs opacity-75">For every RM 1 spent:</p>
-                                        <p className="text-lg sm:text-xl font-bold">RM {metrics.roas.toFixed(2)} return</p>
+                                        <p className="text-lg sm:text-xl font-bold">RM {(metrics?.roas ?? 0).toFixed(2)} return</p>
                                     </div>
                                 </div>
                             </div>
@@ -414,19 +416,19 @@ export default function LiveGMVDashboard() {
                                                     <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
                                                         <span className="font-semibold text-sm sm:text-base text-gray-900">{group.campaign_group}</span>
                                                     </td>
-                                                    <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-right text-sm text-gray-700">{group.num_campaigns}</td>
-                                                    <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-right text-sm font-medium text-gray-900">{formatCurrency(group.total_cost)}</td>
-                                                    <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-right text-sm text-gray-700">{formatNumber(group.total_orders_sku)}</td>
-                                                    <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-right text-sm font-medium text-green-600">{formatCurrency(group.total_revenue)}</td>
+                                                    <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-right text-sm text-gray-700">{group?.num_campaigns ?? 0}</td>
+                                                    <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-right text-sm font-medium text-gray-900">{formatCurrency(group?.total_cost)}</td>
+                                                    <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-right text-sm text-gray-700">{formatNumber(group?.total_orders_sku)}</td>
+                                                    <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-right text-sm font-medium text-green-600">{formatCurrency(group?.total_revenue)}</td>
                                                     <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-right text-sm text-gray-700 hidden sm:table-cell">
-                                                        {group.total_orders_sku > 0 
-                                                            ? formatCurrency(group.total_cost / group.total_orders_sku)
+                                                        {(group?.total_orders_sku ?? 0) > 0 
+                                                            ? formatCurrency((group?.total_cost ?? 0) / (group?.total_orders_sku ?? 1))
                                                             : 'N/A'
                                                         }
                                                     </td>
                                                     <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-right">
-                                                        <span className={`text-sm font-bold ${group.roas >= 3 ? 'text-green-600' : group.roas >= 2 ? 'text-yellow-600' : 'text-red-600'}`}>
-                                                            {group.roas.toFixed(2)}
+                                                        <span className={`text-sm font-bold ${(group.roas ?? 0) >= 3 ? 'text-green-600' : (group.roas ?? 0) >= 2 ? 'text-yellow-600' : 'text-red-600'}`}>
+                                                            {(group.roas ?? 0).toFixed(2)}
                                                         </span>
                                                     </td>
                                                 </tr>
