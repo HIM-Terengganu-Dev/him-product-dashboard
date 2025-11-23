@@ -133,6 +133,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView, isOpen, se
         ))}
       </nav>
     </div>
+    </>
   );
 };
 
