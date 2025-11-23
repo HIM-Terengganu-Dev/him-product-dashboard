@@ -113,6 +113,21 @@ export default function HomePage() {
     initializeGSI();
   }, [GOOGLE_CLIENT_ID, handleSignOut]);
 
+  // Auto-open sidebar on desktop, close on mobile
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 1024) {
+        setSidebarOpen(true);
+      } else {
+        setSidebarOpen(false);
+      }
+    };
+    
+    handleResize(); // Set initial state
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const renderView = useCallback(() => {
     switch (activeView) {
       case "Dashboard":
@@ -150,21 +165,6 @@ export default function HomePage() {
       />
     );
   }
-
-  // Auto-open sidebar on desktop, close on mobile
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth >= 1024) {
-        setSidebarOpen(true);
-      } else {
-        setSidebarOpen(false);
-      }
-    };
-    
-    handleResize(); // Set initial state
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
 
   return (
     <div className="flex h-screen bg-gray-50 text-gray-800 font-sans overflow-hidden">
