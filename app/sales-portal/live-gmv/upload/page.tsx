@@ -23,9 +23,11 @@ export default function LiveGMVUploadPage() {
 
     // Get date from URL query parameter if present (for update functionality)
     useEffect(() => {
-        const dateParam = searchParams.get('date');
-        if (dateParam) {
-            setReportDate(dateParam);
+        if (searchParams) {
+            const dateParam = searchParams.get('date');
+            if (dateParam) {
+                setReportDate(dateParam);
+            }
         }
     }, [searchParams]);
 
@@ -173,7 +175,7 @@ export default function LiveGMVUploadPage() {
                     <div className="mb-6">
                         <label className="block text-sm font-semibold text-gray-700 mb-2">
                             Report Date <span className="text-red-500">*</span>
-                            {searchParams.get('date') && (
+                            {searchParams?.get('date') && (
                                 <span className="ml-2 px-2 py-0.5 text-xs font-medium text-blue-700 bg-blue-100 rounded">
                                     Update Mode
                                 </span>
@@ -187,7 +189,7 @@ export default function LiveGMVUploadPage() {
                             disabled={uploading}
                         />
                         <p className="text-xs text-gray-500 mt-1">
-                            {searchParams.get('date') 
+                            {searchParams?.get('date') 
                                 ? `Updating records for ${searchParams.get('date')}. Uploading will replace all existing data for this date.`
                                 : 'Select the date this data represents. Uploading data for an existing date will update all records for that date.'
                             }
