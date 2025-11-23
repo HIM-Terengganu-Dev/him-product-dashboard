@@ -254,7 +254,7 @@ function ManualEntryContent() {
               <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
                 <li>Select the report date for this data</li>
                 <li>Enter campaign information in the table below</li>
-                <li>Campaign group is automatically detected from campaign name using [brackets], (parentheses), or {curly braces} notation</li>
+                <li>Campaign group is automatically detected from campaign name using [brackets], (parentheses), or {'{'}curly braces{'}'} notation</li>
                 <li>Click &quot;+ Add Row&quot; to add more campaigns</li>
                 <li>Click the &quot;×&quot; button to remove a row</li>
                 <li>Click &quot;Save Data&quot; when done</li>
