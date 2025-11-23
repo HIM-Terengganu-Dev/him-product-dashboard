@@ -363,7 +363,7 @@ export default function LiveGMVDashboard() {
                                 <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl sm:rounded-2xl shadow-lg p-4 sm:p-6 text-white">
                                     <p className="text-xs sm:text-sm font-semibold uppercase tracking-wider opacity-90">Summary</p>
                                     <p className="text-xl sm:text-2xl font-bold mt-1 sm:mt-2">{formatNumber(metrics.num_campaigns)} Campaigns</p>
-                                    <p className="text-xs sm:text-sm opacity-90 mt-1">Across {formatNumber(metrics.num_groups)} Groups</p>
+                                    <p className="text-xs sm:text-sm opacity-90 mt-1">Across {formatNumber(metrics.num_groups)} Accounts</p>
                                     <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-white/20">
                                         <p className="text-xs opacity-75">For every RM 1 spent:</p>
                                         <p className="text-lg sm:text-xl font-bold">RM {metrics.roas.toFixed(2)} return</p>
@@ -376,50 +376,48 @@ export default function LiveGMVDashboard() {
                         <div className="space-y-3 sm:space-y-4">
                             <h2 className="text-lg sm:text-xl font-bold text-gray-800 flex items-center gap-2">
                                 <span className="w-1.5 sm:w-2 h-6 sm:h-8 bg-purple-600 rounded-full"></span>
-                                <span className="truncate">Performance by Campaign Group</span>
+                                <span className="truncate">Performance by Campaign Account</span>
                             </h2>
 
                             <div className="bg-white rounded-xl sm:rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-                                <div className="overflow-x-auto -mx-4 sm:mx-0">
-                                    <div className="inline-block min-w-full align-middle">
-                                        <table className="min-w-full divide-y divide-gray-200">
-                                            <thead className="bg-gray-50 border-b border-gray-200">
-                                                <tr>
-                                                    <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider sticky left-0 bg-gray-50 z-10">Group</th>
-                                                    <th className="px-3 sm:px-6 py-3 sm:py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Campaigns</th>
-                                                    <th className="px-3 sm:px-6 py-3 sm:py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Cost</th>
-                                                    <th className="px-3 sm:px-6 py-3 sm:py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Orders</th>
-                                                    <th className="px-3 sm:px-6 py-3 sm:py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Revenue</th>
-                                                    <th className="px-3 sm:px-6 py-3 sm:py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider hidden sm:table-cell">Cost/Order</th>
-                                                    <th className="px-3 sm:px-6 py-3 sm:py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">ROAS</th>
+                                <div className="overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+                                    <table className="min-w-full divide-y divide-gray-200">
+                                        <thead className="bg-gray-50 border-b border-gray-200">
+                                            <tr>
+                                                <th className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">Account</th>
+                                                <th className="px-4 sm:px-6 py-3 sm:py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">Campaigns</th>
+                                                <th className="px-4 sm:px-6 py-3 sm:py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">Cost</th>
+                                                <th className="px-4 sm:px-6 py-3 sm:py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">Orders</th>
+                                                <th className="px-4 sm:px-6 py-3 sm:py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">Revenue</th>
+                                                <th className="px-4 sm:px-6 py-3 sm:py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap hidden sm:table-cell">Cost/Order</th>
+                                                <th className="px-4 sm:px-6 py-3 sm:py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider whitespace-nowrap">ROAS</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="bg-white divide-y divide-gray-100">
+                                            {groups.map((group, index) => (
+                                                <tr key={index} className="hover:bg-gray-50 transition-colors">
+                                                    <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
+                                                        <span className="font-semibold text-sm sm:text-base text-gray-900">{group.campaign_group}</span>
+                                                    </td>
+                                                    <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-right text-sm text-gray-700">{group.num_campaigns}</td>
+                                                    <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-right text-sm font-medium text-gray-900">{formatCurrency(group.total_cost)}</td>
+                                                    <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-right text-sm text-gray-700">{formatNumber(group.total_orders_sku)}</td>
+                                                    <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-right text-sm font-medium text-green-600">{formatCurrency(group.total_revenue)}</td>
+                                                    <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-right text-sm text-gray-700 hidden sm:table-cell">
+                                                        {group.total_orders_sku > 0 
+                                                            ? formatCurrency(group.total_cost / group.total_orders_sku)
+                                                            : 'N/A'
+                                                        }
+                                                    </td>
+                                                    <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-right">
+                                                        <span className={`text-sm font-bold ${group.roas >= 3 ? 'text-green-600' : group.roas >= 2 ? 'text-yellow-600' : 'text-red-600'}`}>
+                                                            {group.roas.toFixed(2)}
+                                                        </span>
+                                                    </td>
                                                 </tr>
-                                            </thead>
-                                            <tbody className="bg-white divide-y divide-gray-100">
-                                                {groups.map((group, index) => (
-                                                    <tr key={index} className="hover:bg-gray-50 transition-colors">
-                                                        <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap sticky left-0 bg-white z-10">
-                                                            <span className="font-semibold text-sm sm:text-base text-gray-900 truncate block max-w-[120px] sm:max-w-none">{group.campaign_group}</span>
-                                                        </td>
-                                                        <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-right text-sm text-gray-700">{group.num_campaigns}</td>
-                                                        <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-right text-sm font-medium text-gray-900">{formatCurrency(group.total_cost)}</td>
-                                                        <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-right text-sm text-gray-700">{formatNumber(group.total_orders_sku)}</td>
-                                                        <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-right text-sm font-medium text-green-600">{formatCurrency(group.total_revenue)}</td>
-                                                        <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-right text-sm text-gray-700 hidden sm:table-cell">
-                                                            {group.total_orders_sku > 0 
-                                                                ? formatCurrency(group.total_cost / group.total_orders_sku)
-                                                                : 'N/A'
-                                                            }
-                                                        </td>
-                                                        <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-right">
-                                                            <span className={`text-sm font-bold ${group.roas >= 3 ? 'text-green-600' : group.roas >= 2 ? 'text-yellow-600' : 'text-red-600'}`}>
-                                                                {group.roas.toFixed(2)}
-                                                            </span>
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
+                                            ))}
+                                        </tbody>
+                                    </table>
                                 </div>
                             </div>
                         </div>
