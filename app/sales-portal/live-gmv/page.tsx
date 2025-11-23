@@ -414,7 +414,7 @@ export default function LiveGMVDashboard() {
                                             {groups.map((group, index) => (
                                                 <tr key={index} className="hover:bg-gray-50 transition-colors">
                                                     <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
-                                                        <span className="font-semibold text-sm sm:text-base text-gray-900">{group.campaign_group}</span>
+                                                        <span className="font-semibold text-sm sm:text-base text-gray-900">{group?.campaign_group ?? 'N/A'}</span>
                                                     </td>
                                                     <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-right text-sm text-gray-700">{group?.num_campaigns ?? 0}</td>
                                                     <td className="px-4 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-right text-sm font-medium text-gray-900">{formatCurrency(group?.total_cost)}</td>
