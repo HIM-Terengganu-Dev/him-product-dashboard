@@ -392,7 +392,9 @@ function LiveGMVUploadContent() {
                         </table>
                     </div>
                     <p className="text-xs text-gray-500 mt-3">
-                        Note: Campaign names without spaces (e.g., "HIMCoffeedrsamhan") will be automatically used as group names with brackets added (e.g., "[HIMCoffeedrsamhan] HIMCoffeedrsamhan"). You can also use [Group], (Group), or {'{'}Group{'}'} notation to specify the group directly.
+                        <strong>Campaign Group Detection:</strong> The system extracts the group name from text inside brackets, parentheses, or curly braces. 
+                        For example, "[HIM Wellness]" extracts "HIM Wellness" as the group, "(Coffee)" extracts "Coffee", and {'{'}'Samhan'{'}'} extracts "Samhan". 
+                        Only the text inside these symbols is used as the group name. If no brackets/parentheses/braces are found, the entire campaign name is used as the group.
                     </p>
                 </div>
             </div>
