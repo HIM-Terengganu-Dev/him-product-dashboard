@@ -56,9 +56,7 @@ const TicketChat: React.FC<TicketChatProps> = ({
     };
 
     useEffect(() => {
-        fetchReplies();
-        const interval = setInterval(fetchReplies, 30000); // Poll every 30 seconds
-        return () => clearInterval(interval);
+        fetchReplies(true);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [ticketId, user.email]);
 
@@ -102,15 +100,8 @@ const TicketChat: React.FC<TicketChatProps> = ({
 
             if (result.success) {
                 // Replace optimistic reply with real one from server
-                // Refresh immediately to get the real message from server
+                // Refresh after successful send to get the real message from server
                 await fetchReplies(false);
-                
-                // Also refresh the ticket list count if we're on the ticket page
-                // This ensures reply count is updated
-                if (typeof window !== 'undefined' && window.location.pathname.includes('/tickets/')) {
-                    // Trigger a custom event that the ticket page can listen to
-                    window.dispatchEvent(new CustomEvent('ticketUpdated'));
-                }
             } else {
                 // Remove optimistic reply on error
                 setReplies(prev => prev.filter(r => r.id !== optimisticReply.id));
