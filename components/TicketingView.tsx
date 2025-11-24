@@ -364,7 +364,14 @@ const TicketingView: React.FC<TicketingViewProps> = ({ user }) => {
                             {/* Chat Section */}
                             {expandedTicketId === ticket.id && (
                                 <div className="mt-4 pt-4 border-t border-gray-200">
-                                    <TicketChat ticketId={ticket.id} user={user} />
+                                    <TicketChat
+                                        ticketId={ticket.id}
+                                        user={user}
+                                        ticketDescription={ticket.description}
+                                        ticketAuthorName={ticket.submitted_by_name}
+                                        ticketAuthorEmail={ticket.submitted_by_email}
+                                        ticketCreatedAt={ticket.created_at}
+                                    />
                                 </div>
                             )}
                         </div>
