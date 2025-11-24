@@ -298,9 +298,8 @@ export default function LiveGMVDashboard() {
                                             </svg>
                                         </div>
                                     </div>
-                                    <div className="flex items-center justify-between pt-2 sm:pt-3 border-t border-gray-100">
-                                        <span className="text-xs text-gray-700 font-medium hidden sm:inline">{getComparisonLabel()}</span>
-                                        <span className="text-xs text-gray-700 font-medium sm:hidden">vs</span>
+                                    <div className="flex items-center justify-end gap-2 pt-2 sm:pt-3 border-t border-gray-100">
+                                        <span className="text-xs text-gray-700 font-medium">{getComparisonLabel()}</span>
                                         {changeData ? getChangeDisplay(changeData.cost) : <span className="text-gray-400 text-xs">N/A</span>}
                                     </div>
                                 </div>
@@ -319,9 +318,8 @@ export default function LiveGMVDashboard() {
                                             </svg>
                                         </div>
                                     </div>
-                                    <div className="flex items-center justify-between pt-2 sm:pt-3 border-t border-gray-100">
-                                        <span className="text-xs text-gray-700 font-medium hidden sm:inline">{getComparisonLabel()}</span>
-                                        <span className="text-xs text-gray-700 font-medium sm:hidden">vs</span>
+                                    <div className="flex items-center justify-end gap-2 pt-2 sm:pt-3 border-t border-gray-100">
+                                        <span className="text-xs text-gray-700 font-medium">{getComparisonLabel()}</span>
                                         {changeData ? getChangeDisplay(changeData.orders) : <span className="text-gray-400 text-xs">N/A</span>}
                                     </div>
                                 </div>
@@ -340,9 +338,8 @@ export default function LiveGMVDashboard() {
                                             </svg>
                                         </div>
                                     </div>
-                                    <div className="flex items-center justify-between pt-2 sm:pt-3 border-t border-gray-100">
-                                        <span className="text-xs text-gray-700 font-medium hidden sm:inline">{getComparisonLabel()}</span>
-                                        <span className="text-xs text-gray-700 font-medium sm:hidden">vs</span>
+                                    <div className="flex items-center justify-end gap-2 pt-2 sm:pt-3 border-t border-gray-100">
+                                        <span className="text-xs text-gray-700 font-medium">{getComparisonLabel()}</span>
                                         {changeData ? getChangeDisplay(changeData.revenue) : <span className="text-gray-400 text-xs">N/A</span>}
                                     </div>
                                 </div>
@@ -361,9 +358,8 @@ export default function LiveGMVDashboard() {
                                             </svg>
                                         </div>
                                     </div>
-                                    <div className="flex items-center justify-between pt-2 sm:pt-3 border-t border-gray-100">
-                                        <span className="text-xs text-gray-700 font-medium hidden sm:inline">{getComparisonLabel()}</span>
-                                        <span className="text-xs text-gray-700 font-medium sm:hidden">vs</span>
+                                    <div className="flex items-center justify-end gap-2 pt-2 sm:pt-3 border-t border-gray-100">
+                                        <span className="text-xs text-gray-700 font-medium">{getComparisonLabel()}</span>
                                         {changeData ? getChangeDisplay(changeData.costPerOrder) : <span className="text-gray-400 text-xs">N/A</span>}
                                     </div>
                                 </div>
@@ -382,9 +378,8 @@ export default function LiveGMVDashboard() {
                                             </svg>
                                         </div>
                                     </div>
-                                    <div className="flex items-center justify-between pt-2 sm:pt-3 border-t border-gray-100">
-                                        <span className="text-xs text-gray-700 font-medium hidden sm:inline">{getComparisonLabel()}</span>
-                                        <span className="text-xs text-gray-700 font-medium sm:hidden">vs</span>
+                                    <div className="flex items-center justify-end gap-2 pt-2 sm:pt-3 border-t border-gray-100">
+                                        <span className="text-xs text-gray-700 font-medium">{getComparisonLabel()}</span>
                                         {changeData ? getChangeDisplay(changeData.roas) : <span className="text-gray-400 text-xs">N/A</span>}
                                     </div>
                                 </div>
