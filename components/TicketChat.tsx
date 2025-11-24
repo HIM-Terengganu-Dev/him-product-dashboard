@@ -62,6 +62,7 @@ const TicketChat: React.FC<TicketChatProps> = ({
 
     const handleSendReply = async (e: React.FormEvent) => {
         e.preventDefault();
+        e.stopPropagation();
 
         if (!newMessage.trim()) return;
 
@@ -101,7 +102,10 @@ const TicketChat: React.FC<TicketChatProps> = ({
             if (result.success) {
                 // Replace optimistic reply with real one from server
                 // Refresh after successful send to get the real message from server
-                await fetchReplies(false);
+                // Use requestAnimationFrame to prevent scroll jump
+                requestAnimationFrame(() => {
+                    fetchReplies(false);
+                });
             } else {
                 // Remove optimistic reply on error
                 setReplies(prev => prev.filter(r => r.id !== optimisticReply.id));
@@ -232,7 +236,12 @@ const TicketChat: React.FC<TicketChatProps> = ({
             </div>
 
             {/* Reply Input */}
-            <form onSubmit={handleSendReply} className="flex gap-2">
+            <form onSubmit={handleSendReply} className="flex gap-2" onKeyDown={(e) => {
+                // Prevent form submission from causing page scroll
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                }
+            }}>
                 <div className="flex-shrink-0">
                     <img
                         src={user.picture}
