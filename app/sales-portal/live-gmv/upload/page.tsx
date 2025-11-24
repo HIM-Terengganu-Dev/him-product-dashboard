@@ -518,7 +518,7 @@ function LiveGMVUploadContent() {
                         <strong>Campaign Group Detection:</strong> The system extracts the group name from text inside brackets, parentheses, or curly braces. 
                         For example, "[HIM Wellness]" extracts "HIM Wellness" as the group, "(Coffee)" extracts "Coffee", and {'{'}'Samhan'{'}'} extracts "Samhan". 
                         Only the text inside these symbols is used as the group name. If no brackets/parentheses/braces are found, the entire campaign name is used as the group. 
-                        <strong>If multiple markers exist (e.g., "(amma) rocky [balboa]"), precedence is: brackets [] > parentheses () > curly braces {'{'} {'}'}.</strong>
+                        <strong>If multiple markers exist (e.g., "(amma) rocky [balboa]"), precedence is: brackets [] {'>'} parentheses () {'>'} curly braces {'{'} {'}'}.</strong>
                     </p>
                 </div>
             </div>
