@@ -14,14 +14,20 @@ interface UploadResult {
     warnings?: string[];
 }
 
+interface FileWithDate {
+    file: File;
+    detectedDate: string | null;
+    status: 'pending' | 'uploading' | 'success' | 'error';
+    result?: UploadResult;
+}
+
 function LiveGMVUploadContent() {
     const searchParams = useSearchParams();
-    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [selectedFiles, setSelectedFiles] = useState<FileWithDate[]>([]);
     const [reportDate, setReportDate] = useState(new Date().toISOString().split('T')[0]);
     const [uploading, setUploading] = useState(false);
-    const [result, setResult] = useState<UploadResult | null>(null);
+    const [uploadProgress, setUploadProgress] = useState<{ [key: string]: number }>({});
     const [dragActive, setDragActive] = useState(false);
-    const [dateMismatchWarning, setDateMismatchWarning] = useState<string | null>(null);
 
     // Extract date from filename: "Live campaign data (2025-11-21 - 2025-11-21).xlsx"
     const extractDateFromFilename = (filename: string): string | null => {
@@ -59,104 +65,147 @@ function LiveGMVUploadContent() {
         e.stopPropagation();
         setDragActive(false);
         
-        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-            handleFileSelect(e.dataTransfer.files[0]);
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            handleFilesSelect(Array.from(e.dataTransfer.files));
         }
     };
 
-    const handleFileSelect = (file: File) => {
-        // Validate file type
-        const validTypes = ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel'];
-        if (!validTypes.includes(file.type) && !file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
-            alert('Please select a valid Excel file (.xlsx or .xls)');
-            return;
-        }
-        setSelectedFile(file);
-        setResult(null);
-        setDateMismatchWarning(null);
+    const handleFilesSelect = (files: File[]) => {
+        const validFiles: FileWithDate[] = [];
+        const invalidFiles: string[] = [];
 
-        // Auto-detect date from filename
-        const detectedDate = extractDateFromFilename(file.name);
-        if (detectedDate) {
-            // Auto-fill the date
-            setReportDate(detectedDate);
+        files.forEach((file) => {
+            // Validate file type
+            const validTypes = ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel'];
+            if (!validTypes.includes(file.type) && !file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
+                invalidFiles.push(file.name);
+                return;
+            }
+
+            // Auto-detect date from filename
+            const detectedDate = extractDateFromFilename(file.name);
             
-            // Check if it matches the current selected date (if user had already selected one)
-            // This will be checked again before upload
+            validFiles.push({
+                file,
+                detectedDate,
+                status: 'pending',
+            });
+        });
+
+        if (invalidFiles.length > 0) {
+            alert(`The following files are not valid Excel files and were skipped:\n${invalidFiles.join('\n')}`);
+        }
+
+        if (validFiles.length > 0) {
+            setSelectedFiles((prev) => [...prev, ...validFiles]);
+            // Auto-fill date with first file's detected date if available
+            if (validFiles[0].detectedDate) {
+                setReportDate(validFiles[0].detectedDate);
+            }
         }
     };
 
     const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            handleFileSelect(e.target.files[0]);
+        if (e.target.files && e.target.files.length > 0) {
+            handleFilesSelect(Array.from(e.target.files));
         }
     };
 
+    const removeFile = (index: number) => {
+        setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
+    };
+
     const handleUpload = async () => {
-        if (!selectedFile) {
-            alert('Please select a file first');
+        if (selectedFiles.length === 0) {
+            alert('Please select at least one file first');
             return;
         }
 
-        if (!reportDate) {
-            alert('Please select a report date');
-            return;
-        }
-
-        // Check for date mismatch
-        const detectedDate = extractDateFromFilename(selectedFile.name);
-        if (detectedDate && detectedDate !== reportDate) {
-            const confirmMessage = `Warning: The filename contains date "${detectedDate}" but you selected "${reportDate}".\n\nDo you want to continue with the selected date "${reportDate}"?`;
-            if (!confirm(confirmMessage)) {
+        // Check for files without detected dates
+        const filesWithoutDates = selectedFiles.filter(f => !f.detectedDate);
+        if (filesWithoutDates.length > 0) {
+            const fileNames = filesWithoutDates.map(f => f.file.name).join('\n');
+            if (!confirm(`The following files don't have dates in their filenames:\n${fileNames}\n\nDo you want to use the selected date "${reportDate}" for all files?`)) {
                 return;
             }
         }
 
         setUploading(true);
-        setResult(null);
-        setDateMismatchWarning(null);
+        setUploadProgress({});
 
-        try {
-            const formData = new FormData();
-            formData.append('file', selectedFile);
-            formData.append('reportDate', reportDate);
+        // Upload each file with its detected date (or fallback to selected date)
+        const uploadPromises = selectedFiles.map(async (fileWithDate, index) => {
+            const dateToUse = fileWithDate.detectedDate || reportDate;
+            const fileKey = `${fileWithDate.file.name}-${index}`;
 
-            const response = await fetch('/api/tiktok/live-gmv/upload', {
-                method: 'POST',
-                body: formData,
-            });
+            // Update status to uploading
+            setSelectedFiles((prev) => 
+                prev.map((f, i) => 
+                    i === index ? { ...f, status: 'uploading' } : f
+                )
+            );
 
-            const data = await response.json();
-            
-            if (!response.ok) {
-                const errorMessage = data.message || data.error || `Upload failed (${response.status})`;
-                console.error('Upload API error:', {
-                    status: response.status,
-                    statusText: response.statusText,
-                    data,
+            try {
+                const formData = new FormData();
+                formData.append('file', fileWithDate.file);
+                formData.append('reportDate', dateToUse);
+
+                const response = await fetch('/api/tiktok/live-gmv/upload', {
+                    method: 'POST',
+                    body: formData,
                 });
-                throw new Error(errorMessage);
-            }
 
-            setResult(data);
-            
-            // Clear file selection on success
-            if (data.success) {
-                setSelectedFile(null);
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    const errorMessage = data.message || data.error || `Upload failed (${response.status})`;
+                    throw new Error(errorMessage);
+                }
+
+                // Update status to success
+                setSelectedFiles((prev) => 
+                    prev.map((f, i) => 
+                        i === index ? { ...f, status: 'success', result: data } : f
+                    )
+                );
+
+                return { success: true, file: fileWithDate.file.name, data };
+            } catch (error) {
+                const errorMessage = error instanceof Error 
+                    ? error.message 
+                    : 'Upload failed. Please check the console for details.';
+                
+                const errorResult: UploadResult = {
+                    success: false,
+                    message: errorMessage,
+                };
+
+                // Update status to error
+                setSelectedFiles((prev) => 
+                    prev.map((f, i) => 
+                        i === index ? { ...f, status: 'error', result: errorResult } : f
+                    )
+                );
+
+                return { success: false, file: fileWithDate.file.name, error: errorMessage };
             }
-        } catch (error) {
-            console.error('Upload error:', error);
-            const errorMessage = error instanceof Error 
-                ? error.message 
-                : 'Upload failed. Please check the console for details.';
-            
-            setResult({
-                success: false,
-                message: errorMessage,
-            });
-        } finally {
-            setUploading(false);
+        });
+
+        // Wait for all uploads to complete
+        const results = await Promise.all(uploadPromises);
+        
+        // Count successes and failures
+        const successCount = results.filter(r => r.success).length;
+        const failureCount = results.filter(r => !r.success).length;
+
+        if (successCount > 0 && failureCount === 0) {
+            // All successful - clear files
+            setTimeout(() => {
+                setSelectedFiles([]);
+            }, 3000);
         }
+
+        setUploading(false);
     };
 
     return (
@@ -193,9 +242,10 @@ function LiveGMVUploadContent() {
                         <div className="flex-1">
                             <h3 className="text-lg font-bold text-blue-900 mb-2">How to Upload</h3>
                             <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
-                                <li>Select the report date (the date this data represents)</li>
-                                <li>Upload your Live GMV Excel file from TikTok Shop</li>
-                                <li>The system will automatically process and update existing data for that date</li>
+                                <li>You can upload one or multiple Excel files at once</li>
+                                <li>Date will be auto-detected from each filename (format: "Live campaign data (YYYY-MM-DD - YYYY-MM-DD).xlsx")</li>
+                                <li>If a filename doesn't contain a date, the selected date above will be used</li>
+                                <li>The system will automatically process and update existing data for each date</li>
                                 <li>Campaign names will be automatically grouped using [brackets], (parentheses), or {'{'}curly braces{'}'} notation</li>
                                 <li>All data is validated before insertion</li>
                             </ul>
@@ -218,48 +268,16 @@ function LiveGMVUploadContent() {
                         <input
                             type="date"
                             value={reportDate}
-                            onChange={(e) => {
-                                setReportDate(e.target.value);
-                                // Check for mismatch when user manually changes date
-                                if (selectedFile) {
-                                    const detectedDate = extractDateFromFilename(selectedFile.name);
-                                    if (detectedDate && detectedDate !== e.target.value) {
-                                        setDateMismatchWarning(`Filename contains date: ${detectedDate}`);
-                                    } else {
-                                        setDateMismatchWarning(null);
-                                    }
-                                }
-                            }}
+                            onChange={(e) => setReportDate(e.target.value)}
                             className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                             disabled={uploading}
                         />
-                        {selectedFile && (() => {
-                            const detectedDate = extractDateFromFilename(selectedFile.name);
-                            if (detectedDate) {
-                                if (detectedDate === reportDate) {
-                                    return (
-                                        <p className="text-xs text-green-600 mt-1">
-                                            ✓ Date auto-detected from filename: {detectedDate}
-                                        </p>
-                                    );
-                                } else {
-                                    return (
-                                        <p className="text-xs text-yellow-600 mt-1">
-                                            ⚠️ Filename contains date: {detectedDate}, but selected date is: {reportDate}
-                                        </p>
-                                    );
-                                }
+                        <p className="text-xs text-gray-500 mt-1">
+                            {searchParams?.get('date') 
+                                ? `Updating records for ${searchParams.get('date')}. Uploading will replace all existing data for this date.`
+                                : 'Date will be auto-detected from each filename (format: "Live campaign data (YYYY-MM-DD - YYYY-MM-DD).xlsx"). If filename has no date, the selected date above will be used.'
                             }
-                            return null;
-                        })()}
-                        {!selectedFile && (
-                            <p className="text-xs text-gray-500 mt-1">
-                                {searchParams?.get('date') 
-                                    ? `Updating records for ${searchParams.get('date')}. Uploading will replace all existing data for this date.`
-                                    : 'Date will be auto-detected from filename (format: "Live campaign data (YYYY-MM-DD - YYYY-MM-DD).xlsx") or select manually.'
-                                }
-                            </p>
-                        )}
+                        </p>
                     </div>
 
                     {/* File Upload Area */}
@@ -280,26 +298,73 @@ function LiveGMVUploadContent() {
                                     : 'border-gray-300 hover:border-indigo-400'
                             } ${uploading ? 'opacity-50 pointer-events-none' : ''}`}
                         >
-                            {selectedFile ? (
-                                <div className="space-y-3">
+                            {selectedFiles.length > 0 ? (
+                                <div className="space-y-4">
                                     <div className="flex items-center justify-center gap-3">
                                         <svg className="w-12 h-12 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                         </svg>
                                     </div>
-                                    <div>
-                                        <p className="text-sm font-semibold text-gray-900">{selectedFile.name}</p>
-                                        <p className="text-xs text-gray-500 mt-1">
-                                            {(selectedFile.size / 1024).toFixed(2)} KB
-                                        </p>
+                                    <p className="text-sm font-semibold text-gray-900">
+                                        {selectedFiles.length} file{selectedFiles.length > 1 ? 's' : ''} selected
+                                    </p>
+                                    <div className="space-y-2 max-h-60 overflow-y-auto">
+                                        {selectedFiles.map((fileWithDate, index) => (
+                                            <div key={index} className="bg-gray-50 rounded-lg p-3 flex items-center justify-between">
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-xs font-semibold text-gray-900 truncate">{fileWithDate.file.name}</p>
+                                                    <div className="flex items-center gap-2 mt-1">
+                                                        <p className="text-xs text-gray-500">
+                                                            {(fileWithDate.file.size / 1024).toFixed(2)} KB
+                                                        </p>
+                                                        {fileWithDate.detectedDate && (
+                                                            <span className="text-xs text-green-600 font-medium">
+                                                                📅 {fileWithDate.detectedDate}
+                                                            </span>
+                                                        )}
+                                                        {!fileWithDate.detectedDate && (
+                                                            <span className="text-xs text-yellow-600 font-medium">
+                                                                ⚠️ No date in filename
+                                                            </span>
+                                                        )}
+                                                        {fileWithDate.status === 'uploading' && (
+                                                            <span className="text-xs text-blue-600 font-medium flex items-center gap-1">
+                                                                <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24">
+                                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                                                </svg>
+                                                                Uploading...
+                                                            </span>
+                                                        )}
+                                                        {fileWithDate.status === 'success' && (
+                                                            <span className="text-xs text-green-600 font-medium">✅ Success</span>
+                                                        )}
+                                                        {fileWithDate.status === 'error' && (
+                                                            <span className="text-xs text-red-600 font-medium">❌ Failed</span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                {fileWithDate.status === 'pending' && (
+                                                    <button
+                                                        onClick={() => removeFile(index)}
+                                                        className="ml-2 text-sm text-red-600 hover:text-red-700 font-medium"
+                                                        disabled={uploading}
+                                                    >
+                                                        ×
+                                                    </button>
+                                                )}
+                                            </div>
+                                        ))}
                                     </div>
-                                    <button
-                                        onClick={() => setSelectedFile(null)}
-                                        className="text-sm text-red-600 hover:text-red-700 font-medium"
-                                        disabled={uploading}
-                                    >
-                                        Remove file
-                                    </button>
+                                    {selectedFiles.length > 0 && (
+                                        <button
+                                            onClick={() => setSelectedFiles([])}
+                                            className="text-sm text-red-600 hover:text-red-700 font-medium"
+                                            disabled={uploading}
+                                        >
+                                            Clear all files
+                                        </button>
+                                    )}
                                 </div>
                             ) : (
                                 <>
@@ -309,7 +374,7 @@ function LiveGMVUploadContent() {
                                         </svg>
                                     </div>
                                     <p className="text-gray-700 font-medium mb-2">
-                                        Drag and drop your Excel file here
+                                        Drag and drop your Excel files here
                                     </p>
                                     <p className="text-sm text-gray-500 mb-4">or</p>
                                     <label className="inline-block">
@@ -319,13 +384,14 @@ function LiveGMVUploadContent() {
                                         <input
                                             type="file"
                                             accept=".xlsx,.xls"
+                                            multiple
                                             onChange={handleFileInputChange}
                                             className="hidden"
                                             disabled={uploading}
                                         />
                                     </label>
                                     <p className="text-xs text-gray-500 mt-4">
-                                        Supported formats: .xlsx, .xls
+                                        Supported formats: .xlsx, .xls (Multiple files supported)
                                     </p>
                                 </>
                             )}
@@ -335,9 +401,9 @@ function LiveGMVUploadContent() {
                     {/* Upload Button */}
                     <button
                         onClick={handleUpload}
-                        disabled={!selectedFile || !reportDate || uploading}
+                        disabled={selectedFiles.length === 0 || !reportDate || uploading}
                         className={`w-full py-4 rounded-xl font-bold text-white transition-all duration-200 ${
-                            !selectedFile || !reportDate || uploading
+                            selectedFiles.length === 0 || !reportDate || uploading
                                 ? 'bg-gray-300 cursor-not-allowed'
                                 : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-lg hover:shadow-xl'
                         }`}
@@ -348,90 +414,71 @@ function LiveGMVUploadContent() {
                                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                                 </svg>
-                                Uploading...
+                                Uploading {selectedFiles.filter(f => f.status === 'uploading').length} of {selectedFiles.length}...
                             </span>
                         ) : (
-                            '📤 Upload Data'
+                            `📤 Upload ${selectedFiles.length} File${selectedFiles.length !== 1 ? 's' : ''}`
                         )}
                     </button>
                 </div>
 
-                {/* Result Display */}
-                {result && (
-                    <div className={`rounded-2xl p-6 border-2 ${
-                        result.success 
-                            ? 'bg-green-50 border-green-500' 
-                            : 'bg-red-50 border-red-500'
-                    }`}>
-                        <div className="flex items-start gap-4">
-                            <div className="flex-shrink-0 mt-1">
-                                {result.success ? (
-                                    <svg className="w-8 h-8 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                                    </svg>
-                                ) : (
-                                    <svg className="w-8 h-8 text-red-600" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                                    </svg>
-                                )}
-                            </div>
-                            <div className="flex-1">
-                                <h3 className={`text-lg font-bold mb-2 ${result.success ? 'text-green-900' : 'text-red-900'}`}>
-                                    {result.success ? '✅ Upload Successful!' : '❌ Upload Failed'}
-                                </h3>
-                                <p className={`text-sm mb-3 ${result.success ? 'text-green-800' : 'text-red-800'}`}>
-                                    {result.message}
-                                </p>
-                                {result.success && (
-                                    <div className="bg-white/50 rounded-lg p-4 space-y-2">
-                                        <div className="flex justify-between text-sm">
-                                            <span className="text-gray-700 font-medium">Records Processed:</span>
-                                            <span className="text-gray-900 font-bold">{result.recordsProcessed}</span>
+                {/* Results Display for Multiple Files */}
+                {selectedFiles.some(f => f.status === 'success' || f.status === 'error') && (
+                    <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+                        <h3 className="text-lg font-bold text-gray-900 mb-4">Upload Results</h3>
+                        <div className="space-y-3">
+                            {selectedFiles.map((fileWithDate, index) => {
+                                if (fileWithDate.status === 'pending') return null;
+                                
+                                const result = fileWithDate.result;
+                                if (!result) return null;
+
+                                return (
+                                    <div key={index} className={`rounded-lg p-4 border-2 ${
+                                        result.success 
+                                            ? 'bg-green-50 border-green-200' 
+                                            : 'bg-red-50 border-red-200'
+                                    }`}>
+                                        <div className="flex items-start justify-between">
+                                            <div className="flex-1">
+                                                <p className={`text-sm font-semibold mb-1 ${result.success ? 'text-green-900' : 'text-red-900'}`}>
+                                                    {fileWithDate.file.name}
+                                                </p>
+                                                <p className={`text-xs mb-2 ${result.success ? 'text-green-800' : 'text-red-800'}`}>
+                                                    {result.message}
+                                                </p>
+                                                {result.success && (
+                                                    <div className="text-xs text-green-700 space-y-1">
+                                                        {result.recordsProcessed !== undefined && (
+                                                            <p>Records: {result.recordsProcessed} processed, {result.recordsInserted} inserted, {result.recordsUpdated} updated</p>
+                                                        )}
+                                                    </div>
+                                                )}
+                                                {result.warnings && result.warnings.length > 0 && (
+                                                    <div className="mt-2 text-xs text-yellow-800">
+                                                        <p className="font-semibold">Warnings:</p>
+                                                        <ul className="list-disc list-inside">
+                                                            {result.warnings.slice(0, 3).map((w, i) => (
+                                                                <li key={i}>{w}</li>
+                                                            ))}
+                                                        </ul>
+                                                    </div>
+                                                )}
+                                                {result.errors && result.errors.length > 0 && (
+                                                    <div className="mt-2 text-xs text-red-800">
+                                                        <p className="font-semibold">Errors:</p>
+                                                        <ul className="list-disc list-inside">
+                                                            {result.errors.slice(0, 3).map((e, i) => (
+                                                                <li key={i}>{e}</li>
+                                                            ))}
+                                                        </ul>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
-                                        <div className="flex justify-between text-sm">
-                                            <span className="text-gray-700 font-medium">New Records:</span>
-                                            <span className="text-green-700 font-bold">{result.recordsInserted}</span>
-                                        </div>
-                                        <div className="flex justify-between text-sm">
-                                            <span className="text-gray-700 font-medium">Updated Records:</span>
-                                            <span className="text-blue-700 font-bold">{result.recordsUpdated}</span>
-                                        </div>
                                     </div>
-                                )}
-                                {result.warnings && result.warnings.length > 0 && (
-                                    <div className="mt-3 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                                        <p className="text-sm font-semibold text-yellow-900 mb-2">⚠️ Warnings:</p>
-                                        <ul className="text-xs text-yellow-800 space-y-1 list-disc list-inside max-h-40 overflow-y-auto">
-                                            {result.warnings.map((warning, index) => (
-                                                <li key={index}>{warning}</li>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                )}
-                                {result.errors && result.errors.length > 0 && (
-                                    <div className="mt-3 bg-white/50 rounded-lg p-4">
-                                        <p className="text-sm font-semibold text-red-900 mb-2">Errors:</p>
-                                        <ul className="text-xs text-red-800 space-y-1 list-disc list-inside">
-                                            {result.errors.map((error, index) => (
-                                                <li key={index}>{error}</li>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                )}
-                                {result.success && (
-                                    <div className="mt-4">
-                                        <Link
-                                            href="/sales-portal/live-gmv"
-                                            className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all shadow-md text-sm"
-                                        >
-                                            <span>View Dashboard</span>
-                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                                            </svg>
-                                        </Link>
-                                    </div>
-                                )}
-                            </div>
+                                );
+                            })}
                         </div>
                     </div>
                 )}
