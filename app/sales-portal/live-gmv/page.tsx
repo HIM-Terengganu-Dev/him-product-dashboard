@@ -45,6 +45,11 @@ export default function LiveGMVDashboard() {
     // Fetch data when date is loaded and whenever date or comparison period changes
     useEffect(() => {
         if (!dateLoaded || !selectedDate) return;
+        
+        // Don't fetch if custom date is selected but no custom date is provided
+        if (comparisonPeriod === 'customDate' && !customComparisonDate) {
+            return;
+        }
 
         let cancelled = false;
 
