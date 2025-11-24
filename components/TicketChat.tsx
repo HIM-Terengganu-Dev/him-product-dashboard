@@ -34,21 +34,44 @@ const TicketChat: React.FC<TicketChatProps> = ({
     const [loading, setLoading] = useState(true);
     const [sending, setSending] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const messagesContainerRef = useRef<HTMLDivElement>(null);
+    const shouldScrollToBottomRef = useRef<boolean>(true);
+    const isInitialLoadRef = useRef<boolean>(true);
     const isAdmin = isDeveloper(user.email);
 
     const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        if (shouldScrollToBottomRef.current) {
+            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }
     };
 
-    const fetchReplies = async () => {
+    const checkIfNearBottom = (): boolean => {
+        const container = messagesContainerRef.current;
+        if (!container) return true;
+        
+        const threshold = 100; // pixels from bottom
+        const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+        return distanceFromBottom < threshold;
+    };
+
+    const fetchReplies = async (shouldAutoScroll: boolean = false) => {
         try {
             setLoading(true);
             const response = await fetch(`/api/tickets/replies/${ticketId}?userEmail=${encodeURIComponent(user.email)}`);
             const data: GetRepliesResponse = await response.json();
 
             if (data.success) {
+                const wasNearBottom = checkIfNearBottom();
+                shouldScrollToBottomRef.current = shouldAutoScroll || wasNearBottom || isInitialLoadRef.current;
+                
                 setReplies(data.replies);
-                setTimeout(scrollToBottom, 100);
+                
+                if (isInitialLoadRef.current) {
+                    isInitialLoadRef.current = false;
+                    setTimeout(scrollToBottom, 100);
+                } else if (shouldScrollToBottomRef.current) {
+                    setTimeout(scrollToBottom, 100);
+                }
             }
         } catch (error) {
             console.error('Failed to fetch replies:', error);
@@ -58,8 +81,9 @@ const TicketChat: React.FC<TicketChatProps> = ({
     };
 
     useEffect(() => {
-        fetchReplies();
-        const interval = setInterval(fetchReplies, 30000); // Poll every 30 seconds
+        isInitialLoadRef.current = true;
+        fetchReplies(true);
+        const interval = setInterval(() => fetchReplies(false), 30000); // Poll every 30 seconds without auto-scroll
         return () => clearInterval(interval);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [ticketId, user.email]);
@@ -69,14 +93,33 @@ const TicketChat: React.FC<TicketChatProps> = ({
 
         if (!newMessage.trim()) return;
 
+        const messageText = newMessage.trim();
+        setNewMessage('');
         setSending(true);
+
+        // Optimistic update - add message immediately
+        const optimisticReply: TicketReply = {
+            id: `temp-${Date.now()}`,
+            ticket_id: ticketId,
+            author_email: user.email,
+            author_name: user.name,
+            author_picture: user.picture,
+            message: messageText,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+        };
+
+        setReplies(prev => [...prev, optimisticReply]);
+        shouldScrollToBottomRef.current = true;
+        setTimeout(scrollToBottom, 50);
+
         try {
             const response = await fetch('/api/tickets/replies/post', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     ticketId,
-                    message: newMessage,
+                    message: messageText,
                     userEmail: user.email,
                     userName: user.name,
                     userPicture: user.picture,
@@ -86,13 +129,19 @@ const TicketChat: React.FC<TicketChatProps> = ({
             const result: PostReplyResponse = await response.json();
 
             if (result.success) {
-                setNewMessage('');
-                fetchReplies();
+                // Replace optimistic reply with real one from server
+                fetchReplies(true);
             } else {
+                // Remove optimistic reply on error
+                setReplies(prev => prev.filter(r => r.id !== optimisticReply.id));
+                setNewMessage(messageText); // Restore message
                 alert('Failed to send reply');
             }
         } catch (error) {
             console.error('Failed to send reply:', error);
+            // Remove optimistic reply on error
+            setReplies(prev => prev.filter(r => r.id !== optimisticReply.id));
+            setNewMessage(messageText); // Restore message
             alert('Error sending reply');
         } finally {
             setSending(false);
@@ -132,7 +181,14 @@ const TicketChat: React.FC<TicketChatProps> = ({
             </div>
 
             {/* Messages */}
-            <div className="bg-gray-50 rounded-lg p-4 mb-4 max-h-96 overflow-y-auto space-y-3">
+            <div 
+                ref={messagesContainerRef}
+                className="bg-gray-50 rounded-lg p-4 mb-4 max-h-96 overflow-y-auto space-y-3"
+                onScroll={() => {
+                    // Update scroll preference based on user's scroll position
+                    shouldScrollToBottomRef.current = checkIfNearBottom();
+                }}
+            >
                 {loading ? (
                     <div className="text-center py-8">
                         <div className="inline-block animate-spin rounded-full h-6 w-6 border-2 border-indigo-600 border-t-transparent"></div>
@@ -173,6 +229,7 @@ const TicketChat: React.FC<TicketChatProps> = ({
                         {replies.map((reply) => {
                             const isOwnMessage = reply.author_email === user.email;
                             const isDevMessage = isDeveloper(reply.author_email);
+                            const isOptimistic = reply.id.startsWith('temp-');
 
                             return (
                                 <div key={reply.id} className={`flex gap-3 ${isOwnMessage ? 'flex-row-reverse' : ''}`}>
@@ -187,12 +244,14 @@ const TicketChat: React.FC<TicketChatProps> = ({
                                             {isDevMessage && (
                                                 <span className="px-2 py-0.5 bg-indigo-100 text-indigo-700 text-xs font-semibold rounded">DEV</span>
                                             )}
-                                            <span className="text-xs text-gray-500">{formatTime(reply.created_at)}</span>
+                                            <span className="text-xs text-gray-500">
+                                                {isOptimistic ? 'Sending...' : formatTime(reply.created_at)}
+                                            </span>
                                         </div>
                                         <div className={`px-4 py-2 rounded-lg max-w-md ${isOwnMessage
                                             ? 'bg-indigo-600 text-white'
                                             : 'bg-white border border-gray-200 text-gray-800'
-                                            }`}>
+                                            } ${isOptimistic ? 'opacity-75' : ''}`}>
                                             <p className="text-sm whitespace-pre-wrap break-words">{reply.message}</p>
                                         </div>
                                     </div>
