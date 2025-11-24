@@ -11,7 +11,7 @@ export default async function handler(
   }
 
   try {
-    const { date, comparisonPeriod = 'all' } = req.query;
+    const { date, comparisonPeriod = 'all', customDate } = req.query;
     
     // If no date specified, use today
     const targetDate = date ? String(date) : new Date().toISOString().split('T')[0];
@@ -29,6 +29,7 @@ export default async function handler(
       lastWeek?: DailyMetrics | null;
       lastMonth?: DailyMetrics | null;
       lastThreeMonths?: DailyMetrics | null;
+      customDate?: DailyMetrics | null;
     } = {};
 
     if (comparisonPeriod === 'all' || comparisonPeriod === 'yesterday') {
@@ -51,6 +52,12 @@ export default async function handler(
       comparisons.lastThreeMonths = await getDailyMetrics(lastThreeMonthsDate);
     }
 
+    // Handle custom date comparison
+    if (comparisonPeriod === 'customDate' && customDate) {
+      const customDateStr = String(customDate);
+      comparisons.customDate = await getDailyMetrics(customDateStr);
+    }
+
     // Calculate percentage changes
     const metricsWithChange: MetricsWithChange = {
       ...currentMetrics,
@@ -58,6 +65,7 @@ export default async function handler(
       vsLastWeek: calculatePercentageChange(currentMetrics, comparisons.lastWeek),
       vsLastMonth: calculatePercentageChange(currentMetrics, comparisons.lastMonth),
       vsLastThreeMonths: calculatePercentageChange(currentMetrics, comparisons.lastThreeMonths),
+      vsCustomDate: comparisons.customDate ? calculatePercentageChange(currentMetrics, comparisons.customDate) : undefined,
     };
 
     return res.status(200).json({

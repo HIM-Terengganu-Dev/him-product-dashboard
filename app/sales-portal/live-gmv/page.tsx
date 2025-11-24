@@ -11,7 +11,8 @@ export default function LiveGMVDashboard() {
     const [groups, setGroups] = useState<GroupPerformance[]>([]);
     const [selectedDate, setSelectedDate] = useState<string | null>(null);
     const [dateLoaded, setDateLoaded] = useState(false);
-    const [comparisonPeriod, setComparisonPeriod] = useState<'yesterday' | 'lastWeek' | 'lastMonth' | 'lastThreeMonths'>('yesterday');
+    const [comparisonPeriod, setComparisonPeriod] = useState<'yesterday' | 'lastWeek' | 'lastMonth' | 'lastThreeMonths' | 'customDate'>('yesterday');
+    const [customComparisonDate, setCustomComparisonDate] = useState<string | null>(null);
 
     // Fetch latest available date on mount
     useEffect(() => {
@@ -51,8 +52,14 @@ export default function LiveGMVDashboard() {
             setLoading(true);
             setError(null);
             try {
+                // Build metrics URL with custom date if needed
+                let metricsUrl = `/api/tiktok/live-gmv/metrics?date=${selectedDate}&comparisonPeriod=${comparisonPeriod}`;
+                if (comparisonPeriod === 'customDate' && customComparisonDate) {
+                    metricsUrl += `&customDate=${customComparisonDate}`;
+                }
+                
                 const [metricsRes, groupsRes] = await Promise.all([
-                    fetch(`/api/tiktok/live-gmv/metrics?date=${selectedDate}&comparisonPeriod=${comparisonPeriod}`),
+                    fetch(metricsUrl),
                     fetch(`/api/tiktok/live-gmv/groups?date=${selectedDate}`)
                 ]);
 
@@ -99,7 +106,7 @@ export default function LiveGMVDashboard() {
             cancelled = true;
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedDate, comparisonPeriod, dateLoaded]);
+    }, [selectedDate, comparisonPeriod, customComparisonDate, dateLoaded]);
 
     const formatCurrency = (value: number | null | undefined) => {
         if (value === null || value === undefined || isNaN(value)) return 'RM 0.00';
@@ -158,6 +165,8 @@ export default function LiveGMVDashboard() {
             case 'lastWeek': return 'vs Last Week';
             case 'lastMonth': return 'vs Last Month';
             case 'lastThreeMonths': return 'vs 3 Months Ago';
+            case 'customDate': 
+                return customComparisonDate ? `vs ${formatDate(customComparisonDate)}` : 'vs Custom Date';
         }
     };
 
@@ -169,6 +178,7 @@ export default function LiveGMVDashboard() {
                 case 'lastWeek': return metrics.vsLastWeek || null;
                 case 'lastMonth': return metrics.vsLastMonth || null;
                 case 'lastThreeMonths': return metrics.vsLastThreeMonths || null;
+                case 'customDate': return metrics.vsCustomDate || null;
                 default: return null;
             }
         } catch (err) {
@@ -267,10 +277,15 @@ export default function LiveGMVDashboard() {
                             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full sm:w-auto">
                                 <span className="text-xs sm:text-sm font-semibold text-gray-700 whitespace-nowrap">Compare:</span>
                                 <div className="flex flex-wrap items-center gap-2">
-                                    {(['yesterday', 'lastWeek', 'lastMonth', 'lastThreeMonths'] as const).map((period) => (
+                                    {(['yesterday', 'lastWeek', 'lastMonth', 'lastThreeMonths', 'customDate'] as const).map((period) => (
                                         <button
                                             key={period}
-                                            onClick={() => setComparisonPeriod(period)}
+                                            onClick={() => {
+                                                setComparisonPeriod(period);
+                                                if (period !== 'customDate') {
+                                                    setCustomComparisonDate(null);
+                                                }
+                                            }}
                                             className={`px-2 sm:px-3 py-1.5 sm:py-2 text-xs font-medium rounded-lg transition-colors ${
                                                 comparisonPeriod === period
                                                     ? 'bg-indigo-600 text-white'
@@ -281,9 +296,21 @@ export default function LiveGMVDashboard() {
                                             {period === 'lastWeek' && 'Last Week'}
                                             {period === 'lastMonth' && 'Last Month'}
                                             {period === 'lastThreeMonths' && '3 Months'}
+                                            {period === 'customDate' && 'Custom Date'}
                                         </button>
                                     ))}
                                 </div>
+                                {comparisonPeriod === 'customDate' && (
+                                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                                        <input
+                                            type="date"
+                                            value={customComparisonDate || ''}
+                                            onChange={(e) => setCustomComparisonDate(e.target.value)}
+                                            className="px-3 sm:px-4 py-2 border border-gray-300 rounded-lg text-xs sm:text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                            placeholder="Select date"
+                                        />
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>

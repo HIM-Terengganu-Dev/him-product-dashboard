@@ -64,6 +64,7 @@ export interface MetricsWithChange extends DailyMetrics {
   vsLastWeek: PercentageChange;
   vsLastMonth: PercentageChange;
   vsLastThreeMonths: PercentageChange;
+  vsCustomDate?: PercentageChange;
 }
 
 export interface UploadHistory {
