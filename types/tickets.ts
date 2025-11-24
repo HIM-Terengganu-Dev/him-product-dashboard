@@ -19,6 +19,7 @@ export interface Ticket {
     updated_at: string;
     resolved_at?: string;
     developer_notes?: string;
+    reply_count?: number;
 }
 
 export interface SubmitTicketRequest {

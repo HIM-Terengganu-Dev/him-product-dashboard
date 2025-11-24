@@ -41,7 +41,6 @@ export default async function handler(
       error: 'Internal server error',
       message: error instanceof Error ? error.message : 'Unknown error'
     });
-  }
+    }
 }
-
 
