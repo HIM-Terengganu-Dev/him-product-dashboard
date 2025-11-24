@@ -33,45 +33,16 @@ const TicketChat: React.FC<TicketChatProps> = ({
     const [newMessage, setNewMessage] = useState('');
     const [loading, setLoading] = useState(true);
     const [sending, setSending] = useState(false);
-    const messagesEndRef = useRef<HTMLDivElement>(null);
-    const messagesContainerRef = useRef<HTMLDivElement>(null);
-    const shouldScrollToBottomRef = useRef<boolean>(true);
-    const isInitialLoadRef = useRef<boolean>(true);
     const isAdmin = isDeveloper(user.email);
 
-    const scrollToBottom = () => {
-        if (shouldScrollToBottomRef.current) {
-            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-        }
-    };
-
-    const checkIfNearBottom = (): boolean => {
-        const container = messagesContainerRef.current;
-        if (!container) return true;
-        
-        const threshold = 100; // pixels from bottom
-        const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
-        return distanceFromBottom < threshold;
-    };
-
-    const fetchReplies = async (shouldAutoScroll: boolean = false) => {
+    const fetchReplies = async () => {
         try {
             setLoading(true);
             const response = await fetch(`/api/tickets/replies/${ticketId}?userEmail=${encodeURIComponent(user.email)}`);
             const data: GetRepliesResponse = await response.json();
 
             if (data.success) {
-                const wasNearBottom = checkIfNearBottom();
-                shouldScrollToBottomRef.current = shouldAutoScroll || wasNearBottom || isInitialLoadRef.current;
-                
                 setReplies(data.replies);
-                
-                if (isInitialLoadRef.current) {
-                    isInitialLoadRef.current = false;
-                    setTimeout(scrollToBottom, 100);
-                } else if (shouldScrollToBottomRef.current) {
-                    setTimeout(scrollToBottom, 100);
-                }
             }
         } catch (error) {
             console.error('Failed to fetch replies:', error);
@@ -81,9 +52,8 @@ const TicketChat: React.FC<TicketChatProps> = ({
     };
 
     useEffect(() => {
-        isInitialLoadRef.current = true;
-        fetchReplies(true);
-        const interval = setInterval(() => fetchReplies(false), 30000); // Poll every 30 seconds without auto-scroll
+        fetchReplies();
+        const interval = setInterval(fetchReplies, 30000); // Poll every 30 seconds
         return () => clearInterval(interval);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [ticketId, user.email]);
@@ -110,8 +80,6 @@ const TicketChat: React.FC<TicketChatProps> = ({
         };
 
         setReplies(prev => [...prev, optimisticReply]);
-        shouldScrollToBottomRef.current = true;
-        setTimeout(scrollToBottom, 50);
 
         try {
             const response = await fetch('/api/tickets/replies/post', {
@@ -130,7 +98,7 @@ const TicketChat: React.FC<TicketChatProps> = ({
 
             if (result.success) {
                 // Replace optimistic reply with real one from server
-                fetchReplies(true);
+                fetchReplies();
             } else {
                 // Remove optimistic reply on error
                 setReplies(prev => prev.filter(r => r.id !== optimisticReply.id));
@@ -181,14 +149,7 @@ const TicketChat: React.FC<TicketChatProps> = ({
             </div>
 
             {/* Messages */}
-            <div 
-                ref={messagesContainerRef}
-                className="bg-gray-50 rounded-lg p-4 mb-4 max-h-96 overflow-y-auto space-y-3"
-                onScroll={() => {
-                    // Update scroll preference based on user's scroll position
-                    shouldScrollToBottomRef.current = checkIfNearBottom();
-                }}
-            >
+            <div className="bg-gray-50 rounded-lg p-4 mb-4 max-h-96 overflow-y-auto space-y-3">
                 {loading ? (
                     <div className="text-center py-8">
                         <div className="inline-block animate-spin rounded-full h-6 w-6 border-2 border-indigo-600 border-t-transparent"></div>
@@ -263,7 +224,6 @@ const TicketChat: React.FC<TicketChatProps> = ({
                                 No replies yet. Be the first to respond!
                             </div>
                         )}
-                        <div ref={messagesEndRef} />
                     </>
                 )}
             </div>
