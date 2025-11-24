@@ -14,9 +14,10 @@ interface HeaderProps {
   isSidebarOpen: boolean;
   user: User;
   onSignOut: () => void;
+  setActiveView: (view: ViewType) => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ currentView, toggleSidebar, user, onSignOut }) => {
+const Header: React.FC<HeaderProps> = ({ currentView, toggleSidebar, user, onSignOut, setActiveView }) => {
   const [isDropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -74,6 +75,18 @@ const Header: React.FC<HeaderProps> = ({ currentView, toggleSidebar, user, onSig
                 </div>
               </div>
               <div className="p-2">
+                <button
+                  onClick={() => {
+                    setDropdownOpen(false);
+                    setActiveView('Support Tickets');
+                  }}
+                  className="w-full text-left flex items-center space-x-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-colors group"
+                >
+                  <svg className="w-5 h-5 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-5.25h5.25M7.5 15h3M3.375 5.25c-.621 0-1.125.504-1.125 1.125v3.026a2.999 2.999 0 010 5.198v3.026c0 .621.504 1.125 1.125 1.125h17.25c.621 0 1.125-.504 1.125-1.125v-3.026a2.999 2.999 0 010-5.198V6.375c0-.621-.504-1.125-1.125-1.125H3.375z" />
+                  </svg>
+                  <span className="font-medium">Support Tickets</span>
+                </button>
                 <button
                   onClick={onSignOut}
                   className="w-full text-left flex items-center space-x-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors group"

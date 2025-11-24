@@ -34,7 +34,14 @@ const navItems: NavItem[] = [
   { name: 'Sales', view: 'Sales', icon: SalesIcon },
   { name: 'Products', view: 'Products', icon: ProductsIcon },
   { name: 'Messages', view: 'Messages', icon: MessagesIcon },
-  { name: 'Settings', view: 'Settings', icon: SettingsIcon },
+  {
+    name: 'Settings',
+    icon: SettingsIcon,
+    subItems: [
+      { name: 'General', view: 'Settings' },
+      { name: 'Support Tickets', view: 'Support Tickets' },
+    ],
+  },
 ];
 
 const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView, isOpen, setOpen }) => {
@@ -63,7 +70,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView, isOpen, se
           onClick={() => setOpen(false)}
         />
       )}
-      
+
       {/* Sidebar */}
       <div className={`
         bg-white text-gray-700 flex flex-col transition-all duration-300 ease-in-out border-r border-gray-200
@@ -85,54 +92,54 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView, isOpen, se
             <ChevronLeftIcon className="w-6 h-6 text-gray-600" />
           </button>
         </div>
-      <nav className="flex-1 px-3 py-4 overflow-y-auto">
-        {navItems.map((item) => (
-          <div key={item.name}>
-            {item.href ? (
-              // Link-based navigation for external routes
-              <Link href={item.href}>
-                <div className={`${baseItemClass} ${inactiveItemClass}`}>
+        <nav className="flex-1 px-3 py-4 overflow-y-auto">
+          {navItems.map((item) => (
+            <div key={item.name}>
+              {item.href ? (
+                // Link-based navigation for external routes
+                <Link href={item.href}>
+                  <div className={`${baseItemClass} ${inactiveItemClass}`}>
+                    <item.icon className="h-6 w-6" />
+                    {isOpen && <span className="ml-4 font-medium">{item.name}</span>}
+                  </div>
+                </Link>
+              ) : (
+                // View-based navigation for dashboard views
+                <div
+                  onClick={() => {
+                    if (item.subItems) {
+                      toggleSubmenu(item.name);
+                    } else if (item.view) {
+                      setActiveView(item.view);
+                    }
+                  }}
+                  className={`${baseItemClass} ${(activeView === item.view || item.subItems?.some(si => si.view === activeView)) ? activeItemClass : inactiveItemClass
+                    }`}
+                >
                   <item.icon className="h-6 w-6" />
                   {isOpen && <span className="ml-4 font-medium">{item.name}</span>}
+                  {isOpen && item.subItems && (
+                    <ChevronDownIcon className={`w-5 h-5 ml-auto transition-transform duration-200 ${openSubmenus[item.name] ? '' : '-rotate-90'}`} />
+                  )}
                 </div>
-              </Link>
-            ) : (
-              // View-based navigation for dashboard views
-              <div
-                onClick={() => {
-                  if (item.subItems) {
-                    toggleSubmenu(item.name);
-                  } else if (item.view) {
-                    setActiveView(item.view);
-                  }
-                }}
-                className={`${baseItemClass} ${(activeView === item.view || item.subItems?.some(si => si.view === activeView)) ? activeItemClass : inactiveItemClass
-                  }`}
-              >
-                <item.icon className="h-6 w-6" />
-                {isOpen && <span className="ml-4 font-medium">{item.name}</span>}
-                {isOpen && item.subItems && (
-                  <ChevronDownIcon className={`w-5 h-5 ml-auto transition-transform duration-200 ${openSubmenus[item.name] ? '' : '-rotate-90'}`} />
-                )}
-              </div>
-            )}
-            {isOpen && openSubmenus[item.name] && item.subItems && (
-              <div className="ml-4 border-l-2 border-indigo-100">
-                {item.subItems.map((subItem) => (
-                  <div
-                    key={subItem.name}
-                    onClick={() => setActiveView(subItem.view)}
-                    className={`${baseSubItemClass} ${activeView === subItem.view ? activeSubItemClass : inactiveSubItemClass}`}
-                  >
-                    <span>{subItem.name}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        ))}
-      </nav>
-    </div>
+              )}
+              {isOpen && openSubmenus[item.name] && item.subItems && (
+                <div className="ml-4 border-l-2 border-indigo-100">
+                  {item.subItems.map((subItem) => (
+                    <div
+                      key={subItem.name}
+                      onClick={() => setActiveView(subItem.view)}
+                      className={`${baseSubItemClass} ${activeView === subItem.view ? activeSubItemClass : inactiveSubItemClass}`}
+                    >
+                      <span>{subItem.name}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </nav>
+      </div>
     </>
   );
 };

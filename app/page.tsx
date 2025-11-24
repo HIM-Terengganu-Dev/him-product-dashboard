@@ -11,9 +11,10 @@ import ClientSegmentView from '../components/ClientSegmentView';
 import ProspectStatusView from '../components/ProspectStatusView';
 import SalesView from '../components/SalesView';
 import LoginView from '../components/LoginView';
+import TicketingView from '../components/TicketingView';
 import { jwtDecode } from 'jwt-decode';
 
-export type ViewType = "Dashboard" | "Orders" | "CRM" | "Client Status" | "Client Segment" | "Prospect Status" | "Sales" | "Products" | "Messages" | "Settings";
+export type ViewType = "Dashboard" | "Orders" | "CRM" | "Client Status" | "Client Segment" | "Prospect Status" | "Sales" | "Products" | "Messages" | "Settings" | "Support Tickets";
 
 interface User {
   name: string;
@@ -122,7 +123,7 @@ export default function HomePage() {
         setSidebarOpen(false);
       }
     };
-    
+
     handleResize(); // Set initial state
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
@@ -150,6 +151,8 @@ export default function HomePage() {
         return <PlaceholderView title="Messages" />;
       case "Settings":
         return <PlaceholderView title="Settings" />;
+      case "Support Tickets":
+        return <TicketingView user={user!} />;
       default:
         return <CrmView />;
     }
@@ -176,6 +179,7 @@ export default function HomePage() {
           toggleSidebar={() => setSidebarOpen(p => !p)}
           user={user}
           onSignOut={handleSignOut}
+          setActiveView={setActiveView}
         />
         <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 p-3 sm:p-4 md:p-6 lg:p-8">
           {renderView()}
