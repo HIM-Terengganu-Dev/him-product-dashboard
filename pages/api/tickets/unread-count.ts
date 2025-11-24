@@ -44,26 +44,35 @@ export default async function handler(
 
             const ticketIds = tickets.map((t: any) => t.id);
 
-            // For each ticket, check if there are unread replies
-            // A reply is unread if:
-            // 1. It's not from the current user
-            // 2. Either no read status exists, or the reply was created after last_read_at
+            // Count unread tickets (tickets with unread replies)
+            // A ticket is unread if:
+            // 1. It has replies not from the current user
+            // 2. Either no read status exists, or replies were created after last_read_at
+            const ticketIds = tickets.map((t: any) => t.id);
+            
+            if (ticketIds.length === 0) {
+                return sendSuccessResponse(res, { success: true, unreadCount: 0 });
+            }
+
+            // Get read status for all tickets at once
+            const readStatusResult = await client.query(
+                `SELECT ticket_id, last_read_at 
+                 FROM dev_tickets.ticket_read_status 
+                 WHERE ticket_id = ANY($1::uuid[]) AND user_email = $2`,
+                [ticketIds, userEmail.toLowerCase()]
+            );
+
+            const readStatusMap = new Map();
+            readStatusResult.rows.forEach((row: any) => {
+                readStatusMap.set(row.ticket_id, new Date(row.last_read_at));
+            });
+
+            // Count unread tickets
             let unreadCount = 0;
-
             for (const ticket of tickets) {
-                // Get the last read status for this user and ticket
-                const readStatusResult = await client.query(
-                    `SELECT last_read_at, last_read_reply_id 
-                     FROM dev_tickets.ticket_read_status 
-                     WHERE ticket_id = $1 AND user_email = $2`,
-                    [ticket.id, userEmail.toLowerCase()]
-                );
+                const lastReadAt = readStatusMap.get(ticket.id);
 
-                const readStatus = readStatusResult.rows[0];
-                const lastReadAt = readStatus ? new Date(readStatus.last_read_at) : null;
-
-                // Count unread replies
-                // Unread = replies created after last_read_at AND not from current user
+                // Count unread replies (replies not from current user, created after last_read_at)
                 let unreadQuery = `
                     SELECT COUNT(*) as count
                     FROM dev_tickets.ticket_replies
@@ -80,30 +89,10 @@ export default async function handler(
                 const unreadResult = await client.query(unreadQuery, unreadParams);
                 const unreadReplies = parseInt(unreadResult.rows[0].count);
 
-                // Also check if there are new replies to tickets the user submitted
-                // (for ticket owners, any new reply is unread)
-                if (ticket.submitted_by_email.toLowerCase() === userEmail.toLowerCase()) {
-                    // For ticket owners, also check if ticket was updated after last read
-                    if (lastReadAt) {
-                        const ticketUpdateResult = await client.query(
-                            `SELECT updated_at FROM dev_tickets.tickets WHERE id = $1`,
-                            [ticket.id]
-                        );
-                        if (ticketUpdateResult.rows.length > 0) {
-                            const ticketUpdatedAt = new Date(ticketUpdateResult.rows[0].updated_at);
-                            if (ticketUpdatedAt > lastReadAt) {
-                                unreadCount += unreadReplies > 0 ? unreadReplies : 1;
-                                continue;
-                            }
-                        }
-                    } else {
-                        // Never read, count all non-own replies
-                        unreadCount += unreadReplies;
-                        continue;
-                    }
+                // If there are unread replies, count this ticket as unread
+                if (unreadReplies > 0) {
+                    unreadCount++;
                 }
-
-                unreadCount += unreadReplies;
             }
 
             sendSuccessResponse(res, {
