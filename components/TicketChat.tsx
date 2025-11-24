@@ -140,7 +140,7 @@ const TicketChat: React.FC<TicketChatProps> = ({
                     Conversation ({replies.length + 1})
                 </h4>
                 <button
-                    onClick={fetchReplies}
+                    onClick={() => fetchReplies(true)}
                     className="text-indigo-600 hover:text-indigo-800 text-xs font-medium flex items-center gap-1"
                     disabled={loading}
                 >
