@@ -157,86 +157,42 @@ function TicketPageContent() {
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
             <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
-                {/* Header */}
-                <div className="mb-6">
-                    <Link 
-                        href="/sales-portal?view=Support Tickets"
-                        className="inline-flex items-center gap-2 text-indigo-600 hover:text-indigo-800 mb-4 text-sm font-medium"
-                    >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                        </svg>
-                        Back to Tickets
-                    </Link>
-                    
-                    <div className="bg-white rounded-xl shadow-md p-6 border border-gray-200">
-                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
-                            <div className="flex-1">
-                                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">{ticket.title}</h1>
-                                <div className="flex flex-wrap items-center gap-2">
-                                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(ticket.status)}`}>
-                                        {ticket.status.replace('_', ' ').toUpperCase()}
-                                    </span>
-                                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getPriorityColor(ticket.priority)}`}>
-                                        {ticket.priority.toUpperCase()}
-                                    </span>
-                                    <span className="text-sm text-gray-600">
-                                        {ticket.category.replace('_', ' ')}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="mb-6">
-                            <h2 className="text-lg font-semibold text-gray-900 mb-2">Description</h2>
-                            <p className="text-gray-700 whitespace-pre-line bg-gray-50 p-4 rounded-lg">{ticket.description}</p>
-                        </div>
-
-                        <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 pt-4 border-t border-gray-200 mb-4">
-                            <span className="flex items-center gap-1">
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                {/* Minimal Header */}
+                <div className="mb-4">
+                    <div className="flex items-center justify-between gap-4 mb-4">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <Link 
+                                href="/sales-portal?view=Support Tickets"
+                                className="flex-shrink-0 text-indigo-600 hover:text-indigo-800"
+                            >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                                 </svg>
-                                {ticket.submitted_by_name}
+                            </Link>
+                            <h1 className="text-lg font-semibold text-gray-900 truncate">{ticket.title}</h1>
+                            <span className={`px-2 py-1 rounded-full text-xs font-semibold flex-shrink-0 ${getStatusColor(ticket.status)}`}>
+                                {ticket.status.replace('_', ' ').toUpperCase()}
                             </span>
-                            <span className="flex items-center gap-1">
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                {formatDate(ticket.created_at)}
+                            <span className={`px-2 py-1 rounded-full text-xs font-semibold flex-shrink-0 ${getPriorityColor(ticket.priority)}`}>
+                                {ticket.priority.toUpperCase()}
                             </span>
-                            {isAdmin && (
-                                <span className="text-indigo-600 font-medium">
-                                    {ticket.submitted_by_email}
-                                </span>
-                            )}
                         </div>
-
-                        {/* Admin Controls */}
                         {isAdmin && (
-                            <div className="pt-4 border-t border-gray-200">
-                                <div className="flex flex-wrap items-center gap-3 mb-3">
-                                    <span className="text-sm font-medium text-gray-700">Update Status:</span>
-                                    {['open', 'in_progress', 'resolved', 'closed'].map((status) => (
-                                        <button
-                                            key={status}
-                                            onClick={() => handleUpdateStatus(status)}
-                                            disabled={ticket.status === status}
-                                            className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${ticket.status === status
-                                                ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                                                : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'
-                                                }`}
-                                        >
-                                            {status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                                        </button>
-                                    ))}
-                                </div>
-                                {ticket.developer_notes && (
-                                    <div className="p-3 bg-yellow-50 rounded-lg">
-                                        <p className="text-sm font-medium text-gray-700 mb-1">Developer Notes:</p>
-                                        <p className="text-sm text-gray-600">{ticket.developer_notes}</p>
-                                    </div>
-                                )}
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                                <span className="text-sm font-medium text-gray-700">Status:</span>
+                                {['open', 'in_progress', 'resolved', 'closed'].map((status) => (
+                                    <button
+                                        key={status}
+                                        onClick={() => handleUpdateStatus(status)}
+                                        disabled={ticket.status === status}
+                                        className={`px-2 py-1 rounded text-xs font-medium transition-colors ${ticket.status === status
+                                            ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                                            : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'
+                                            }`}
+                                    >
+                                        {status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                    </button>
+                                ))}
                             </div>
                         )}
                     </div>
