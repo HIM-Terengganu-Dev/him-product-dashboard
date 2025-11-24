@@ -295,7 +295,7 @@ function ManualEntryContent() {
               <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
                 <li>Select the report date for this data</li>
                 <li>Enter campaign information in the table below</li>
-                <li><strong>Campaign Group Detection:</strong> Only the text inside brackets [ ], parentheses ( ), or curly braces {'{'} {'}'} is extracted as the group name. For example, "[HIM Wellness] Campaign" extracts "HIM Wellness", "(Coffee) Ad" extracts "Coffee", and {'{'}'Samhan'{'}'} extracts "Samhan". The brackets/parentheses/braces themselves are not included in the group name. <strong>If multiple markers exist, precedence is: brackets [] > parentheses () > curly braces {'{'} {'}'}.</strong></li>
+                <li><strong>Campaign Group Detection:</strong> Only the text inside brackets [ ], parentheses ( ), or curly braces {'{'} {'}'} is extracted as the group name. For example, "[HIM Wellness] Campaign" extracts "HIM Wellness", "(Coffee) Ad" extracts "Coffee", and {'{'}'Samhan'{'}'} extracts "Samhan". The brackets/parentheses/braces themselves are not included in the group name. <strong>If multiple markers exist, precedence is: brackets [] {'>'} parentheses () {'>'} curly braces {'{'} {'}'}.</strong></li>
                 <li>Click &quot;+ Add Row&quot; to add more campaigns</li>
                 <li>Click the &quot;×&quot; button to remove a row</li>
                 <li>Click &quot;Save Data&quot; when done</li>
