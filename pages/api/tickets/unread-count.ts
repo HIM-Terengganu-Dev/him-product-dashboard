@@ -1,5 +1,6 @@
 import type { NextApiResponse } from 'next';
 import { pool } from '../../../lib/db-tickets';
+import { isDeveloper } from '../../../lib/auth-utils';
 import { validateMethod, sendErrorResponse, sendSuccessResponse } from '../../../lib/api-helpers';
 import type { ApiRequest } from '../../../types';
 
@@ -23,18 +24,18 @@ export default async function handler(
             // Get all tickets the user has access to
             // For regular users: only their own tickets
             // For developers: all tickets
-            const isDeveloper = userEmail === 'himclinicdata@gmail.com' || userEmail === 'amirsyahmi.jamsari@gmail.com';
+            const userIsDeveloper = isDeveloper(userEmail);
             
             let ticketQuery = `
                 SELECT t.id, t.submitted_by_email
                 FROM dev_tickets.tickets t
             `;
             
-            if (!isDeveloper) {
+            if (!userIsDeveloper) {
                 ticketQuery += ` WHERE t.submitted_by_email = $1`;
             }
 
-            const ticketParams = !isDeveloper ? [userEmail.toLowerCase()] : [];
+            const ticketParams = !userIsDeveloper ? [userEmail.toLowerCase()] : [];
             const ticketResult = await client.query(ticketQuery, ticketParams);
             const tickets = ticketResult.rows;
 
