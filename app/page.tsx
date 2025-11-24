@@ -40,6 +40,17 @@ export default function HomePage() {
   const [activeView, setActiveView] = useState<ViewType>("CRM");
   const [isSidebarOpen, setSidebarOpen] = useState(false); // Closed on mobile by default
 
+  // Read view from URL query parameter
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const viewParam = urlParams.get('view');
+      if (viewParam && ['Dashboard', 'Orders', 'CRM', 'Client Status', 'Client Segment', 'Prospect Status', 'Sales', 'Products', 'Messages', 'Settings', 'Support Tickets'].includes(viewParam)) {
+        setActiveView(viewParam as ViewType);
+      }
+    }
+  }, []);
+
   const handleSignOut = useCallback(() => {
     if (window.google) {
       window.google.accounts.id.disableAutoSelect();
