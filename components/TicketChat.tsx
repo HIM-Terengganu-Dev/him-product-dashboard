@@ -13,9 +13,22 @@ interface User {
 interface TicketChatProps {
     ticketId: string;
     user: User;
+    ticketDescription: string;
+    ticketAuthorName: string;
+    ticketAuthorEmail: string;
+    ticketAuthorPicture?: string;
+    ticketCreatedAt: string;
 }
 
-const TicketChat: React.FC<TicketChatProps> = ({ ticketId, user }) => {
+const TicketChat: React.FC<TicketChatProps> = ({
+    ticketId,
+    user,
+    ticketDescription,
+    ticketAuthorName,
+    ticketAuthorEmail,
+    ticketAuthorPicture,
+    ticketCreatedAt
+}) => {
     const [replies, setReplies] = useState<TicketReply[]>([]);
     const [newMessage, setNewMessage] = useState('');
     const [loading, setLoading] = useState(true);
@@ -100,7 +113,7 @@ const TicketChat: React.FC<TicketChatProps> = ({ ticketId, user }) => {
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                 </svg>
-                Conversation ({replies.length})
+                Conversation ({replies.length + 1})
             </h4>
 
             {/* Messages */}
@@ -119,6 +132,28 @@ const TicketChat: React.FC<TicketChatProps> = ({ ticketId, user }) => {
                     </div>
                 ) : (
                     <>
+                        {/* Original Ticket Description as First Message */}
+                        <div className="flex gap-3">
+                            <img
+                                src={ticketAuthorPicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(ticketAuthorName)}&background=6366f1&color=fff`}
+                                alt={ticketAuthorName}
+                                className="w-8 h-8 rounded-full flex-shrink-0"
+                            />
+                            <div className="flex-1 flex flex-col items-start">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <span className="text-xs font-medium text-gray-700">{ticketAuthorName}</span>
+                                    {isDeveloper(ticketAuthorEmail) && (
+                                        <span className="px-2 py-0.5 bg-indigo-100 text-indigo-700 text-xs font-semibold rounded">DEV</span>
+                                    )}
+                                    <span className="text-xs text-gray-500">{formatTime(ticketCreatedAt)}</span>
+                                </div>
+                                <div className="px-4 py-2 rounded-lg max-w-md bg-white border border-gray-200 text-gray-800">
+                                    <p className="text-sm whitespace-pre-wrap break-words">{ticketDescription}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Replies */}
                         {replies.map((reply) => {
                             const isOwnMessage = reply.author_email === user.email;
                             const isDevMessage = isDeveloper(reply.author_email);
@@ -139,8 +174,8 @@ const TicketChat: React.FC<TicketChatProps> = ({ ticketId, user }) => {
                                             <span className="text-xs text-gray-500">{formatTime(reply.created_at)}</span>
                                         </div>
                                         <div className={`px-4 py-2 rounded-lg max-w-md ${isOwnMessage
-                                                ? 'bg-indigo-600 text-white'
-                                                : 'bg-white border border-gray-200 text-gray-800'
+                                            ? 'bg-indigo-600 text-white'
+                                            : 'bg-white border border-gray-200 text-gray-800'
                                             }`}>
                                             <p className="text-sm whitespace-pre-wrap break-words">{reply.message}</p>
                                         </div>
@@ -148,6 +183,11 @@ const TicketChat: React.FC<TicketChatProps> = ({ ticketId, user }) => {
                                 </div>
                             );
                         })}
+                        {replies.length === 0 && (
+                            <div className="text-center py-4 text-gray-500 text-sm">
+                                No replies yet. Be the first to respond!
+                            </div>
+                        )}
                         <div ref={messagesEndRef} />
                     </>
                 )}
