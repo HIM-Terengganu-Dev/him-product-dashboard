@@ -39,6 +39,7 @@ export default function HomePage() {
 
   const [activeView, setActiveView] = useState<ViewType>("CRM");
   const [isSidebarOpen, setSidebarOpen] = useState(false); // Closed on mobile by default
+  const [unreadTicketCount, setUnreadTicketCount] = useState(0);
 
   // Read view from URL query parameter
   useEffect(() => {
@@ -50,6 +51,28 @@ export default function HomePage() {
       }
     }
   }, []);
+
+  // Fetch unread ticket count
+  useEffect(() => {
+    if (!user) return;
+
+    const fetchUnreadCount = async () => {
+      try {
+        const response = await fetch(`/api/tickets/unread-count?userEmail=${encodeURIComponent(user.email)}`);
+        const data = await response.json();
+        if (data.success) {
+          setUnreadTicketCount(data.unreadCount);
+        }
+      } catch (error) {
+        console.error('Failed to fetch unread count:', error);
+      }
+    };
+
+    fetchUnreadCount();
+    // Poll every 30 seconds for unread count updates
+    const interval = setInterval(fetchUnreadCount, 30000);
+    return () => clearInterval(interval);
+  }, [user]);
 
   const handleSignOut = useCallback(() => {
     if (window.google) {
@@ -182,7 +205,7 @@ export default function HomePage() {
 
   return (
     <div className="flex h-screen bg-gray-50 text-gray-800 font-sans overflow-hidden">
-      <Sidebar activeView={activeView} setActiveView={setActiveView} isOpen={isSidebarOpen} setOpen={setSidebarOpen} />
+      <Sidebar activeView={activeView} setActiveView={setActiveView} isOpen={isSidebarOpen} setOpen={setSidebarOpen} unreadTicketCount={unreadTicketCount} />
       <div className="flex-1 flex flex-col overflow-hidden w-full lg:w-auto">
         <Header
           currentView={activeView}

@@ -46,6 +46,20 @@ function TicketPageContent() {
                     const foundTicket = data.tickets.find((t: Ticket) => t.id === ticketId);
                     if (foundTicket) {
                         setTicket(foundTicket);
+                        
+                        // Mark ticket as read when viewing
+                        try {
+                            await fetch('/api/tickets/mark-read', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    ticketId: ticketId,
+                                    userEmail: user.email,
+                                }),
+                            });
+                        } catch (error) {
+                            console.error('Failed to mark ticket as read:', error);
+                        }
                     } else {
                         // Ticket not found or no access
                         router.push('/?view=Support Tickets');

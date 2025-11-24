@@ -8,6 +8,7 @@ interface SidebarProps {
   setActiveView: (view: ViewType) => void;
   isOpen: boolean;
   setOpen: (isOpen: boolean) => void;
+  unreadTicketCount?: number;
 }
 
 type NavItem = {
@@ -44,7 +45,7 @@ const navItems: NavItem[] = [
   },
 ];
 
-const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView, isOpen, setOpen }) => {
+const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView, isOpen, setOpen, unreadTicketCount = 0 }) => {
   const [openSubmenus, setOpenSubmenus] = useState<{ [key: string]: boolean }>({
     'CRM': true,
   });
@@ -121,6 +122,11 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView, isOpen, se
                   {isOpen && item.subItems && (
                     <ChevronDownIcon className={`w-5 h-5 ml-auto transition-transform duration-200 ${openSubmenus[item.name] ? '' : '-rotate-90'}`} />
                   )}
+                  {!isOpen && item.subItems?.some(si => si.view === 'Support Tickets') && unreadTicketCount > 0 && (
+                    <span className="absolute top-1 right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                      {unreadTicketCount > 9 ? '9+' : unreadTicketCount}
+                    </span>
+                  )}
                 </div>
               )}
               {isOpen && openSubmenus[item.name] && item.subItems && (
@@ -129,9 +135,14 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView, isOpen, se
                     <div
                       key={subItem.name}
                       onClick={() => setActiveView(subItem.view)}
-                      className={`${baseSubItemClass} ${activeView === subItem.view ? activeSubItemClass : inactiveSubItemClass}`}
+                      className={`${baseSubItemClass} ${activeView === subItem.view ? activeSubItemClass : inactiveSubItemClass} relative`}
                     >
                       <span>{subItem.name}</span>
+                      {subItem.view === 'Support Tickets' && unreadTicketCount > 0 && (
+                        <span className="ml-auto bg-red-500 text-white text-xs font-bold rounded-full px-2 py-0.5 min-w-[20px] text-center">
+                          {unreadTicketCount > 99 ? '99+' : unreadTicketCount}
+                        </span>
+                      )}
                     </div>
                   ))}
                 </div>
