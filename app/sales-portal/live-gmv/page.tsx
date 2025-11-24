@@ -301,7 +301,7 @@ export default function LiveGMVDashboard() {
                                     <div className="flex items-center justify-between pt-2 sm:pt-3 border-t border-gray-100">
                                         <span className="text-xs text-gray-700 font-medium hidden sm:inline">{getComparisonLabel()}</span>
                                         <span className="text-xs text-gray-700 font-medium sm:hidden">vs</span>
-                                        {changeData?.cost !== undefined && getChangeDisplay(changeData.cost)}
+                                        {changeData ? getChangeDisplay(changeData.cost) : <span className="text-gray-400 text-xs">N/A</span>}
                                     </div>
                                 </div>
 
@@ -322,7 +322,7 @@ export default function LiveGMVDashboard() {
                                     <div className="flex items-center justify-between pt-2 sm:pt-3 border-t border-gray-100">
                                         <span className="text-xs text-gray-700 font-medium hidden sm:inline">{getComparisonLabel()}</span>
                                         <span className="text-xs text-gray-700 font-medium sm:hidden">vs</span>
-                                        {changeData?.orders !== undefined && getChangeDisplay(changeData.orders)}
+                                        {changeData ? getChangeDisplay(changeData.orders) : <span className="text-gray-400 text-xs">N/A</span>}
                                     </div>
                                 </div>
 
@@ -343,7 +343,7 @@ export default function LiveGMVDashboard() {
                                     <div className="flex items-center justify-between pt-2 sm:pt-3 border-t border-gray-100">
                                         <span className="text-xs text-gray-700 font-medium hidden sm:inline">{getComparisonLabel()}</span>
                                         <span className="text-xs text-gray-700 font-medium sm:hidden">vs</span>
-                                        {changeData?.revenue !== undefined && getChangeDisplay(changeData.revenue)}
+                                        {changeData ? getChangeDisplay(changeData.revenue) : <span className="text-gray-400 text-xs">N/A</span>}
                                     </div>
                                 </div>
 
@@ -364,7 +364,7 @@ export default function LiveGMVDashboard() {
                                     <div className="flex items-center justify-between pt-2 sm:pt-3 border-t border-gray-100">
                                         <span className="text-xs text-gray-700 font-medium hidden sm:inline">{getComparisonLabel()}</span>
                                         <span className="text-xs text-gray-700 font-medium sm:hidden">vs</span>
-                                        {changeData?.costPerOrder !== undefined && getChangeDisplay(changeData.costPerOrder)}
+                                        {changeData ? getChangeDisplay(changeData.costPerOrder) : <span className="text-gray-400 text-xs">N/A</span>}
                                     </div>
                                 </div>
 
@@ -385,7 +385,7 @@ export default function LiveGMVDashboard() {
                                     <div className="flex items-center justify-between pt-2 sm:pt-3 border-t border-gray-100">
                                         <span className="text-xs text-gray-700 font-medium hidden sm:inline">{getComparisonLabel()}</span>
                                         <span className="text-xs text-gray-700 font-medium sm:hidden">vs</span>
-                                        {changeData?.roas !== undefined && getChangeDisplay(changeData.roas)}
+                                        {changeData ? getChangeDisplay(changeData.roas) : <span className="text-gray-400 text-xs">N/A</span>}
                                     </div>
                                 </div>
 
