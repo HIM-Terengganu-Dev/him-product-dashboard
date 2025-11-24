@@ -115,9 +115,33 @@ export default function LiveGMVDashboard() {
         return value.toLocaleString('ms-MY');
     };
 
-    const getChangeDisplay = (change: number | null) => {
+    // Format date as dd/mm/yyyy
+    const formatDate = (dateStr: string | null): string => {
+        if (!dateStr) return '';
+        const date = new Date(dateStr);
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}/${month}/${year}`;
+    };
+
+    const getChangeDisplay = (change: number | null, metricType?: 'cost' | 'costPerOrder' | 'revenue' | 'orders' | 'roas') => {
         if (change === null) return <span className="text-gray-400 text-xs">N/A</span>;
         const isPositive = change >= 0;
+        
+        // Cost and Cost per Order use neutral colors (yellow) since increase is not necessarily good
+        if (metricType === 'cost' || metricType === 'costPerOrder') {
+            const color = 'text-yellow-700';
+            const bgColor = 'bg-yellow-50';
+            const icon = isPositive ? '↑' : '↓';
+            return (
+                <span className={`${color} ${bgColor} px-2 py-1 rounded-full text-xs font-bold`}>
+                    {icon} {Math.abs(change).toFixed(1)}%
+                </span>
+            );
+        }
+        
+        // Other metrics use green/red (revenue, orders, ROAS - increase is good)
         const color = isPositive ? 'text-green-600' : 'text-red-600';
         const bgColor = isPositive ? 'bg-green-50' : 'bg-red-50';
         const icon = isPositive ? '↑' : '↓';
@@ -300,7 +324,7 @@ export default function LiveGMVDashboard() {
                                     </div>
                                     <div className="flex items-center justify-end gap-2 pt-2 sm:pt-3 border-t border-gray-100">
                                         <span className="text-xs text-gray-700 font-medium">{getComparisonLabel()}</span>
-                                        {changeData ? getChangeDisplay(changeData.cost) : <span className="text-gray-400 text-xs">N/A</span>}
+                                        {changeData ? getChangeDisplay(changeData.cost, 'cost') : <span className="text-gray-400 text-xs">N/A</span>}
                                     </div>
                                 </div>
 
@@ -320,7 +344,7 @@ export default function LiveGMVDashboard() {
                                     </div>
                                     <div className="flex items-center justify-end gap-2 pt-2 sm:pt-3 border-t border-gray-100">
                                         <span className="text-xs text-gray-700 font-medium">{getComparisonLabel()}</span>
-                                        {changeData ? getChangeDisplay(changeData.orders) : <span className="text-gray-400 text-xs">N/A</span>}
+                                        {changeData ? getChangeDisplay(changeData.orders, 'orders') : <span className="text-gray-400 text-xs">N/A</span>}
                                     </div>
                                 </div>
 
@@ -340,7 +364,7 @@ export default function LiveGMVDashboard() {
                                     </div>
                                     <div className="flex items-center justify-end gap-2 pt-2 sm:pt-3 border-t border-gray-100">
                                         <span className="text-xs text-gray-700 font-medium">{getComparisonLabel()}</span>
-                                        {changeData ? getChangeDisplay(changeData.revenue) : <span className="text-gray-400 text-xs">N/A</span>}
+                                        {changeData ? getChangeDisplay(changeData.revenue, 'revenue') : <span className="text-gray-400 text-xs">N/A</span>}
                                     </div>
                                 </div>
 
@@ -360,7 +384,7 @@ export default function LiveGMVDashboard() {
                                     </div>
                                     <div className="flex items-center justify-end gap-2 pt-2 sm:pt-3 border-t border-gray-100">
                                         <span className="text-xs text-gray-700 font-medium">{getComparisonLabel()}</span>
-                                        {changeData ? getChangeDisplay(changeData.costPerOrder) : <span className="text-gray-400 text-xs">N/A</span>}
+                                        {changeData ? getChangeDisplay(changeData.costPerOrder, 'costPerOrder') : <span className="text-gray-400 text-xs">N/A</span>}
                                     </div>
                                 </div>
 
@@ -380,7 +404,7 @@ export default function LiveGMVDashboard() {
                                     </div>
                                     <div className="flex items-center justify-end gap-2 pt-2 sm:pt-3 border-t border-gray-100">
                                         <span className="text-xs text-gray-700 font-medium">{getComparisonLabel()}</span>
-                                        {changeData ? getChangeDisplay(changeData.roas) : <span className="text-gray-400 text-xs">N/A</span>}
+                                        {changeData ? getChangeDisplay(changeData.roas, 'roas') : <span className="text-gray-400 text-xs">N/A</span>}
                                     </div>
                                 </div>
 

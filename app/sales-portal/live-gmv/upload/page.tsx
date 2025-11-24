@@ -21,6 +21,18 @@ function LiveGMVUploadContent() {
     const [uploading, setUploading] = useState(false);
     const [result, setResult] = useState<UploadResult | null>(null);
     const [dragActive, setDragActive] = useState(false);
+    const [dateMismatchWarning, setDateMismatchWarning] = useState<string | null>(null);
+
+    // Extract date from filename: "Live campaign data (2025-11-21 - 2025-11-21).xlsx"
+    const extractDateFromFilename = (filename: string): string | null => {
+        // Pattern: "Live campaign data (YYYY-MM-DD - YYYY-MM-DD).xlsx"
+        const match = filename.match(/\((\d{4}-\d{2}-\d{2})\s*-\s*(\d{4}-\d{2}-\d{2})\)/);
+        if (match) {
+            // Use the first date (both should be the same, but use first one)
+            return match[1];
+        }
+        return null;
+    };
 
     // Get date from URL query parameter if present (for update functionality)
     useEffect(() => {
@@ -61,6 +73,17 @@ function LiveGMVUploadContent() {
         }
         setSelectedFile(file);
         setResult(null);
+        setDateMismatchWarning(null);
+
+        // Auto-detect date from filename
+        const detectedDate = extractDateFromFilename(file.name);
+        if (detectedDate) {
+            // Auto-fill the date
+            setReportDate(detectedDate);
+            
+            // Check if it matches the current selected date (if user had already selected one)
+            // This will be checked again before upload
+        }
     };
 
     const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -80,8 +103,18 @@ function LiveGMVUploadContent() {
             return;
         }
 
+        // Check for date mismatch
+        const detectedDate = extractDateFromFilename(selectedFile.name);
+        if (detectedDate && detectedDate !== reportDate) {
+            const confirmMessage = `Warning: The filename contains date "${detectedDate}" but you selected "${reportDate}".\n\nDo you want to continue with the selected date "${reportDate}"?`;
+            if (!confirm(confirmMessage)) {
+                return;
+            }
+        }
+
         setUploading(true);
         setResult(null);
+        setDateMismatchWarning(null);
 
         try {
             const formData = new FormData();
@@ -185,16 +218,48 @@ function LiveGMVUploadContent() {
                         <input
                             type="date"
                             value={reportDate}
-                            onChange={(e) => setReportDate(e.target.value)}
+                            onChange={(e) => {
+                                setReportDate(e.target.value);
+                                // Check for mismatch when user manually changes date
+                                if (selectedFile) {
+                                    const detectedDate = extractDateFromFilename(selectedFile.name);
+                                    if (detectedDate && detectedDate !== e.target.value) {
+                                        setDateMismatchWarning(`Filename contains date: ${detectedDate}`);
+                                    } else {
+                                        setDateMismatchWarning(null);
+                                    }
+                                }
+                            }}
                             className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                             disabled={uploading}
                         />
-                        <p className="text-xs text-gray-500 mt-1">
-                            {searchParams?.get('date') 
-                                ? `Updating records for ${searchParams.get('date')}. Uploading will replace all existing data for this date.`
-                                : 'Select the date this data represents. Uploading data for an existing date will update all records for that date.'
+                        {selectedFile && (() => {
+                            const detectedDate = extractDateFromFilename(selectedFile.name);
+                            if (detectedDate) {
+                                if (detectedDate === reportDate) {
+                                    return (
+                                        <p className="text-xs text-green-600 mt-1">
+                                            ✓ Date auto-detected from filename: {detectedDate}
+                                        </p>
+                                    );
+                                } else {
+                                    return (
+                                        <p className="text-xs text-yellow-600 mt-1">
+                                            ⚠️ Filename contains date: {detectedDate}, but selected date is: {reportDate}
+                                        </p>
+                                    );
+                                }
                             }
-                        </p>
+                            return null;
+                        })()}
+                        {!selectedFile && (
+                            <p className="text-xs text-gray-500 mt-1">
+                                {searchParams?.get('date') 
+                                    ? `Updating records for ${searchParams.get('date')}. Uploading will replace all existing data for this date.`
+                                    : 'Date will be auto-detected from filename (format: "Live campaign data (YYYY-MM-DD - YYYY-MM-DD).xlsx") or select manually.'
+                                }
+                            </p>
+                        )}
                     </div>
 
                     {/* File Upload Area */}
