@@ -17,7 +17,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 5,
   userScalable: true,
-  viewportFit: 'cover',
+  // Remove viewportFit for better desktop/web compatibility
 };
 
 export default function RootLayout({
