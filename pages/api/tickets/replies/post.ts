@@ -1,9 +1,9 @@
 import type { NextApiResponse } from 'next';
-import { pool } from '../../../lib/db-tickets';
-import { isDeveloper } from '../../../lib/auth-utils';
-import { validateMethod, sendErrorResponse, sendSuccessResponse } from '../../../lib/api-helpers';
-import type { ApiRequest } from '../../../types';
-import type { PostReplyRequest, PostReplyResponse } from '../../../types/tickets';
+import { pool } from '../../../../lib/db-tickets';
+import { isDeveloper } from '../../../../lib/auth-utils';
+import { validateMethod, sendErrorResponse, sendSuccessResponse } from '../../../../lib/api-helpers';
+import type { ApiRequest } from '../../../../types';
+import type { PostReplyRequest, PostReplyResponse } from '../../../../types/tickets';
 
 export default async function handler(
     req: ApiRequest,
