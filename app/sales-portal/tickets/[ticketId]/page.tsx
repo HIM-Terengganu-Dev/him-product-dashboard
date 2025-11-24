@@ -90,6 +90,42 @@ function TicketPageContent() {
         }
     };
 
+    const handleDeleteTicket = async () => {
+        if (!user || !ticket) return;
+
+        // Confirmation dialog
+        const confirmed = window.confirm(
+            `Are you sure you want to delete this ticket?\n\n` +
+            `Title: ${ticket.title}\n\n` +
+            `This will permanently delete the ticket and all its replies. This action cannot be undone.`
+        );
+
+        if (!confirmed) return;
+
+        try {
+            const response = await fetch('/api/tickets/delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    ticketId: ticket.id,
+                    userEmail: user.email,
+                }),
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                // Redirect to tickets list after successful deletion
+                router.push('/sales-portal?view=Support Tickets');
+            } else {
+                alert(result.error || 'Failed to delete ticket');
+            }
+        } catch (error) {
+            console.error('Failed to delete ticket:', error);
+            alert('Error deleting ticket');
+        }
+    };
+
     const getStatusColor = (status: string) => {
         switch (status) {
             case 'open': return 'bg-blue-100 text-blue-800';
@@ -178,21 +214,33 @@ function TicketPageContent() {
                             </span>
                         </div>
                         {isAdmin && (
-                            <div className="flex items-center gap-2 flex-shrink-0">
-                                <span className="text-sm font-medium text-gray-700">Status:</span>
-                                {['open', 'in_progress', 'resolved', 'closed'].map((status) => (
-                                    <button
-                                        key={status}
-                                        onClick={() => handleUpdateStatus(status)}
-                                        disabled={ticket.status === status}
-                                        className={`px-2 py-1 rounded text-xs font-medium transition-colors ${ticket.status === status
-                                            ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                                            : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'
-                                            }`}
-                                    >
-                                        {status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                                    </button>
-                                ))}
+                            <div className="flex items-center gap-3 flex-shrink-0">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-sm font-medium text-gray-700">Status:</span>
+                                    {['open', 'in_progress', 'resolved', 'closed'].map((status) => (
+                                        <button
+                                            key={status}
+                                            onClick={() => handleUpdateStatus(status)}
+                                            disabled={ticket.status === status}
+                                            className={`px-2 py-1 rounded text-xs font-medium transition-colors ${ticket.status === status
+                                                ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                                                : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'
+                                                }`}
+                                        >
+                                            {status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                        </button>
+                                    ))}
+                                </div>
+                                <button
+                                    onClick={handleDeleteTicket}
+                                    className="px-3 py-1.5 bg-red-100 text-red-700 hover:bg-red-200 rounded text-xs font-medium transition-colors flex items-center gap-1.5"
+                                    title="Delete this ticket permanently"
+                                >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                    Delete
+                                </button>
                             </div>
                         )}
                     </div>
