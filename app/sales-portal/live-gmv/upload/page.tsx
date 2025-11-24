@@ -11,6 +11,7 @@ interface UploadResult {
     recordsInserted?: number;
     recordsUpdated?: number;
     errors?: string[];
+    warnings?: string[];
 }
 
 function LiveGMVUploadContent() {
@@ -332,6 +333,16 @@ function LiveGMVUploadContent() {
                                         </div>
                                     </div>
                                 )}
+                                {result.warnings && result.warnings.length > 0 && (
+                                    <div className="mt-3 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                                        <p className="text-sm font-semibold text-yellow-900 mb-2">⚠️ Warnings:</p>
+                                        <ul className="text-xs text-yellow-800 space-y-1 list-disc list-inside max-h-40 overflow-y-auto">
+                                            {result.warnings.map((warning, index) => (
+                                                <li key={index}>{warning}</li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
                                 {result.errors && result.errors.length > 0 && (
                                     <div className="mt-3 bg-white/50 rounded-lg p-4">
                                         <p className="text-sm font-semibold text-red-900 mb-2">Errors:</p>
@@ -394,7 +405,8 @@ function LiveGMVUploadContent() {
                     <p className="text-xs text-gray-500 mt-3">
                         <strong>Campaign Group Detection:</strong> The system extracts the group name from text inside brackets, parentheses, or curly braces. 
                         For example, "[HIM Wellness]" extracts "HIM Wellness" as the group, "(Coffee)" extracts "Coffee", and {'{'}'Samhan'{'}'} extracts "Samhan". 
-                        Only the text inside these symbols is used as the group name. If no brackets/parentheses/braces are found, the entire campaign name is used as the group.
+                        Only the text inside these symbols is used as the group name. If no brackets/parentheses/braces are found, the entire campaign name is used as the group. 
+                        <strong>If multiple markers exist (e.g., "(amma) rocky [balboa]"), precedence is: brackets [] > parentheses () > curly braces {'{'} {'}'}.</strong>
                     </p>
                 </div>
             </div>

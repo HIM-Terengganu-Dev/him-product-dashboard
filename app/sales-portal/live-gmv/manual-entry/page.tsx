@@ -73,33 +73,57 @@ function ManualEntryContent() {
   };
 
   // Auto-calculate campaign_group from campaign_name using bracket, parenthesis, or curly brace notation
-  const getCampaignGroup = (campaignName: string): string => {
-    if (!campaignName) return '';
+  // Precedence: brackets [] > parentheses () > curly braces {}
+  const getCampaignGroup = (campaignName: string): { group: string; warning?: string } => {
+    if (!campaignName) return { group: '' };
+    
+    // Detect all group markers
+    const bracketMatch = campaignName.match(/\[([^\]]+)\]/);
+    const parenMatch = campaignName.match(/\(([^)]+)\)/);
+    const braceMatch = campaignName.match(/\{([^}]+)\}/);
+    
+    const foundMarkers: string[] = [];
+    if (bracketMatch) foundMarkers.push(`[${bracketMatch[1]}]`);
+    if (parenMatch) foundMarkers.push(`(${parenMatch[1]})`);
+    if (braceMatch) foundMarkers.push(`{${braceMatch[1]}}`);
+    
+    // Check for multiple group markers
+    if (foundMarkers.length > 1) {
+      const warning = `Multiple group markers detected: ${foundMarkers.join(', ')}. Using precedence: brackets [] > parentheses () > curly braces {}.`;
+      
+      // Use precedence: brackets > parentheses > braces
+      if (bracketMatch) {
+        return { group: bracketMatch[1].trim(), warning };
+      }
+      if (parenMatch) {
+        return { group: parenMatch[1].trim(), warning };
+      }
+      if (braceMatch) {
+        return { group: braceMatch[1].trim(), warning };
+      }
+    }
     
     // Check for square brackets []
-    const bracketMatch = campaignName.match(/\[([^\]]+)\]/);
     if (bracketMatch) {
-      return bracketMatch[1].trim();
+      return { group: bracketMatch[1].trim() };
     }
     
     // Check for parentheses ()
-    const parenMatch = campaignName.match(/\(([^)]+)\)/);
     if (parenMatch) {
-      return parenMatch[1].trim();
+      return { group: parenMatch[1].trim() };
     }
     
     // Check for curly braces {}
-    const braceMatch = campaignName.match(/\{([^}]+)\}/);
     if (braceMatch) {
-      return braceMatch[1].trim();
+      return { group: braceMatch[1].trim() };
     }
     
     // If no group markers, check if it's a single word (no spaces)
     if (!campaignName.includes(' ')) {
-      return campaignName;
+      return { group: campaignName };
     }
     
-    return '';
+    return { group: '' };
   };
 
   const handleSubmit = async () => {
@@ -124,22 +148,39 @@ function ManualEntryContent() {
     // Check for conflicts: same campaign_id with different groups
     const campaignGroupMap = new Map<string, string>();
     const conflicts: string[] = [];
+    const warnings: string[] = [];
     
     validRows.forEach((row, index) => {
       const campaignId = row.campaign_id.trim();
-      const campaignGroup = getCampaignGroup(row.campaign_name) || row.campaign_name.trim();
+      const { group: campaignGroup, warning } = getCampaignGroup(row.campaign_name);
+      const finalGroup = campaignGroup || row.campaign_name.trim();
+      
+      // Collect warnings about multiple group markers
+      if (warning) {
+        warnings.push(`Row ${index + 1} (${row.campaign_name}): ${warning}`);
+      }
       
       if (campaignId) {
         const existingGroup = campaignGroupMap.get(campaignId);
-        if (existingGroup && existingGroup !== campaignGroup) {
+        if (existingGroup && existingGroup !== finalGroup) {
           conflicts.push(
-            `Row ${index + 1}: Campaign ID "${campaignId}" has conflicting groups: "${existingGroup}" and "${campaignGroup}"`
+            `Row ${index + 1}: Campaign ID "${campaignId}" has conflicting groups: "${existingGroup}" and "${finalGroup}"`
           );
         } else if (!existingGroup) {
-          campaignGroupMap.set(campaignId, campaignGroup);
+          campaignGroupMap.set(campaignId, finalGroup);
         }
       }
     });
+
+    // Show warnings about multiple group markers (non-blocking)
+    if (warnings.length > 0) {
+      console.warn('Multiple group markers detected:', warnings);
+      // Optionally show a non-blocking notification
+      const warningMsg = `Warning: Multiple group markers detected in some campaign names.\n\n${warnings.slice(0, 3).join('\n')}${warnings.length > 3 ? `\n... and ${warnings.length - 3} more` : ''}\n\nPrecedence: brackets [] > parentheses () > curly braces {}.`;
+      if (!confirm(warningMsg + '\n\nContinue anyway?')) {
+        return;
+      }
+    }
 
     if (conflicts.length > 0) {
       alert(`Group conflicts detected:\n\n${conflicts.join('\n')}\n\nPlease ensure each campaign ID has a consistent group.`);
@@ -152,7 +193,7 @@ function ManualEntryContent() {
     try {
       // Format data for API
       const formattedData = validRows.map((row) => {
-        const campaignGroup = getCampaignGroup(row.campaign_name);
+        const { group: campaignGroup } = getCampaignGroup(row.campaign_name);
         
         return {
           campaign_id: row.campaign_id.trim(),
@@ -254,7 +295,7 @@ function ManualEntryContent() {
               <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
                 <li>Select the report date for this data</li>
                 <li>Enter campaign information in the table below</li>
-                <li><strong>Campaign Group Detection:</strong> Only the text inside brackets [ ], parentheses ( ), or curly braces {'{'} {'}'} is extracted as the group name. For example, "[HIM Wellness] Campaign" extracts "HIM Wellness", "(Coffee) Ad" extracts "Coffee", and {'{'}'Samhan'{'}'} extracts "Samhan". The brackets/parentheses/braces themselves are not included in the group name.</li>
+                <li><strong>Campaign Group Detection:</strong> Only the text inside brackets [ ], parentheses ( ), or curly braces {'{'} {'}'} is extracted as the group name. For example, "[HIM Wellness] Campaign" extracts "HIM Wellness", "(Coffee) Ad" extracts "Coffee", and {'{'}'Samhan'{'}'} extracts "Samhan". The brackets/parentheses/braces themselves are not included in the group name. <strong>If multiple markers exist, precedence is: brackets [] > parentheses () > curly braces {'{'} {'}'}.</strong></li>
                 <li>Click &quot;+ Add Row&quot; to add more campaigns</li>
                 <li>Click the &quot;×&quot; button to remove a row</li>
                 <li>Click &quot;Save Data&quot; when done</li>

@@ -165,6 +165,7 @@ export default async function handler(
     // Parse and validate data
     const parsedData: ParsedRow[] = [];
     const errors: string[] = [];
+    const warnings: string[] = [];
     
     // Track campaign_id to group mapping for conflict detection
     const campaignIdToGroup = new Map<string, string>();
@@ -191,31 +192,48 @@ export default async function handler(
         }
 
         // Helper function to extract group from brackets, parentheses, or curly braces
-        const extractGroup = (name: string): { group: string; hasGroupMarker: boolean } => {
-          // Check for square brackets []
+        // Precedence: brackets [] > parentheses () > curly braces {}
+        const extractGroup = (name: string): { group: string; hasGroupMarker: boolean; warning?: string } => {
+          // Detect all group markers
           const bracketMatch = name.match(/\[([^\]]+)\]/);
-          if (bracketMatch) {
-            return { group: bracketMatch[1].trim(), hasGroupMarker: true };
-          }
-          
-          // Check for parentheses ()
           const parenMatch = name.match(/\(([^)]+)\)/);
-          if (parenMatch) {
-            return { group: parenMatch[1].trim(), hasGroupMarker: true };
+          const braceMatch = name.match(/\{([^}]+)\}/);
+          
+          const foundMarkers: string[] = [];
+          if (bracketMatch) foundMarkers.push(`[${bracketMatch[1]}]`);
+          if (parenMatch) foundMarkers.push(`(${parenMatch[1]})`);
+          if (braceMatch) foundMarkers.push(`{${braceMatch[1]}}`);
+          
+          // Check for multiple group markers
+          let warning: string | undefined;
+          if (foundMarkers.length > 1) {
+            warning = `Multiple group markers detected: ${foundMarkers.join(', ')}. Using precedence: brackets [] > parentheses () > curly braces {}.`;
           }
           
-          // Check for curly braces {}
-          const braceMatch = name.match(/\{([^}]+)\}/);
+          // Use precedence: brackets > parentheses > braces
+          if (bracketMatch) {
+            return { group: bracketMatch[1].trim(), hasGroupMarker: true, warning };
+          }
+          
+          if (parenMatch) {
+            return { group: parenMatch[1].trim(), hasGroupMarker: true, warning };
+          }
+          
           if (braceMatch) {
-            return { group: braceMatch[1].trim(), hasGroupMarker: true };
+            return { group: braceMatch[1].trim(), hasGroupMarker: true, warning };
           }
           
           return { group: '', hasGroupMarker: false };
         };
 
         // Determine campaign group
-        const { group: extractedGroup, hasGroupMarker } = extractGroup(campaignName);
+        const { group: extractedGroup, hasGroupMarker, warning } = extractGroup(campaignName);
         let campaignGroup = '';
+        
+        // Collect warnings about multiple group markers
+        if (warning) {
+          warnings.push(`Row ${index + 2} (${campaignName}): ${warning}`);
+        }
         
         if (hasGroupMarker) {
           campaignGroup = extractedGroup;
@@ -580,6 +598,7 @@ export default async function handler(
         recordsInserted: insertedCount,
         recordsUpdated: updatedCount,
         errors: errors.length > 0 ? errors : undefined,
+        warnings: warnings.length > 0 ? warnings : undefined,
       });
     } catch (error) {
       console.error('Database error:', error);
