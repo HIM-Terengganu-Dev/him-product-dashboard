@@ -35,9 +35,11 @@ const TicketChat: React.FC<TicketChatProps> = ({
     const [sending, setSending] = useState(false);
     const isAdmin = isDeveloper(user.email);
 
-    const fetchReplies = async () => {
+    const fetchReplies = async (showLoading: boolean = false) => {
         try {
-            setLoading(true);
+            if (showLoading) {
+                setLoading(true);
+            }
             const response = await fetch(`/api/tickets/replies/${ticketId}?userEmail=${encodeURIComponent(user.email)}`);
             const data: GetRepliesResponse = await response.json();
 
@@ -47,7 +49,9 @@ const TicketChat: React.FC<TicketChatProps> = ({
         } catch (error) {
             console.error('Failed to fetch replies:', error);
         } finally {
-            setLoading(false);
+            if (showLoading) {
+                setLoading(false);
+            }
         }
     };
 
@@ -98,7 +102,15 @@ const TicketChat: React.FC<TicketChatProps> = ({
 
             if (result.success) {
                 // Replace optimistic reply with real one from server
-                fetchReplies();
+                // Refresh immediately to get the real message from server
+                await fetchReplies(false);
+                
+                // Also refresh the ticket list count if we're on the ticket page
+                // This ensures reply count is updated
+                if (typeof window !== 'undefined' && window.location.pathname.includes('/tickets/')) {
+                    // Trigger a custom event that the ticket page can listen to
+                    window.dispatchEvent(new CustomEvent('ticketUpdated'));
+                }
             } else {
                 // Remove optimistic reply on error
                 setReplies(prev => prev.filter(r => r.id !== optimisticReply.id));
