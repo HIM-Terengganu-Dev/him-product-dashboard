@@ -59,7 +59,10 @@ const TicketChat: React.FC<TicketChatProps> = ({
 
     useEffect(() => {
         fetchReplies();
-    }, [ticketId]);
+        const interval = setInterval(fetchReplies, 30000); // Poll every 30 seconds
+        return () => clearInterval(interval);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [ticketId, user.email]);
 
     const handleSendReply = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -109,12 +112,24 @@ const TicketChat: React.FC<TicketChatProps> = ({
 
     return (
         <div className="border-t border-gray-200 mt-4 pt-4">
-            <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                </svg>
-                Conversation ({replies.length + 1})
-            </h4>
+            <div className="flex justify-between items-center mb-3">
+                <h4 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                    Conversation ({replies.length + 1})
+                </h4>
+                <button
+                    onClick={fetchReplies}
+                    className="text-indigo-600 hover:text-indigo-800 text-xs font-medium flex items-center gap-1"
+                    disabled={loading}
+                >
+                    <svg className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Refresh
+                </button>
+            </div>
 
             {/* Messages */}
             <div className="bg-gray-50 rounded-lg p-4 mb-4 max-h-96 overflow-y-auto space-y-3">
@@ -147,7 +162,8 @@ const TicketChat: React.FC<TicketChatProps> = ({
                                     )}
                                     <span className="text-xs text-gray-500">{formatTime(ticketCreatedAt)}</span>
                                 </div>
-                                <div className="px-4 py-2 rounded-lg max-w-md bg-white border border-gray-200 text-gray-800">
+                                <div className="px-4 py-3 rounded-lg max-w-md bg-indigo-50 border border-indigo-100 text-gray-800 shadow-sm">
+                                    <p className="text-xs font-semibold text-indigo-900 mb-1 uppercase tracking-wide">Description</p>
                                     <p className="text-sm whitespace-pre-wrap break-words">{ticketDescription}</p>
                                 </div>
                             </div>
