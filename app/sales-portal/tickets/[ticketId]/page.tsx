@@ -48,7 +48,7 @@ function TicketPageContent() {
                         setTicket(foundTicket);
                     } else {
                         // Ticket not found or no access
-                        router.push('/sales-portal?view=Support Tickets');
+                        router.push('/?view=Support Tickets');
                     }
                 }
             } catch (error) {
@@ -116,7 +116,7 @@ function TicketPageContent() {
 
             if (result.success) {
                 // Redirect to tickets list after successful deletion
-                router.push('/sales-portal?view=Support Tickets');
+                router.push('/?view=Support Tickets');
             } else {
                 alert(result.error || 'Failed to delete ticket');
             }
@@ -182,7 +182,7 @@ function TicketPageContent() {
             <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
                 <div className="text-center">
                     <p className="text-gray-600">Ticket not found</p>
-                    <Link href="/sales-portal?view=Support Tickets" className="text-indigo-600 hover:text-indigo-800 mt-2 inline-block">
+                    <Link href="/?view=Support Tickets" className="text-indigo-600 hover:text-indigo-800 mt-2 inline-block">
                         ← Back to Tickets
                     </Link>
                 </div>
@@ -198,7 +198,7 @@ function TicketPageContent() {
                     <div className="flex items-center justify-between gap-4 mb-4">
                         <div className="flex items-center gap-3 flex-1 min-w-0">
                             <Link 
-                                href="/sales-portal?view=Support Tickets"
+                                href="/?view=Support Tickets"
                                 className="flex-shrink-0 text-indigo-600 hover:text-indigo-800"
                             >
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
