@@ -43,17 +43,11 @@ export default async function handler(
                 return sendSuccessResponse(res, { success: true, unreadCount: 0 });
             }
 
-            const ticketIds = tickets.map((t: any) => t.id);
-
             // Count unread tickets (tickets with unread replies)
             // A ticket is unread if:
             // 1. It has replies not from the current user
             // 2. Either no read status exists, or replies were created after last_read_at
             const ticketIds = tickets.map((t: any) => t.id);
-            
-            if (ticketIds.length === 0) {
-                return sendSuccessResponse(res, { success: true, unreadCount: 0 });
-            }
 
             // Get read status for all tickets at once
             const readStatusResult = await client.query(
