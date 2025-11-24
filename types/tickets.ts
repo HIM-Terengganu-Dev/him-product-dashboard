@@ -52,3 +52,31 @@ export interface UpdateTicketResponse {
     success: boolean;
     message?: string;
 }
+
+// Ticket Reply types for chat functionality
+export interface TicketReply {
+    id: string;
+    ticket_id: string;
+    author_email: string;
+    author_name: string;
+    author_picture?: string;
+    message: string;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface PostReplyRequest {
+    ticketId: string;
+    message: string;
+}
+
+export interface PostReplyResponse {
+    success: boolean;
+    replyId?: string;
+    message?: string;
+}
+
+export interface GetRepliesResponse {
+    success: boolean;
+    replies: TicketReply[];
+}

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import type { Ticket, ListTicketsResponse, SubmitTicketRequest, UpdateTicketRequest } from '../types/tickets';
+import TicketChat from './TicketChat';
 
 interface User {
     name: string;
@@ -20,6 +21,7 @@ const TicketingView: React.FC<TicketingViewProps> = ({ user }) => {
     const [showForm, setShowForm] = useState(false);
     const [filterStatus, setFilterStatus] = useState<string>('all');
     const [submitting, setSubmitting] = useState(false);
+    const [expandedTicketId, setExpandedTicketId] = useState<string | null>(null);
 
     // Form state
     const [title, setTitle] = useState('');
@@ -259,8 +261,8 @@ const TicketingView: React.FC<TicketingViewProps> = ({ user }) => {
                                 key={status}
                                 onClick={() => setFilterStatus(status)}
                                 className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${filterStatus === status
-                                        ? 'bg-indigo-600 text-white'
-                                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                    ? 'bg-indigo-600 text-white'
+                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                     }`}
                             >
                                 {status === 'all' ? 'All' : status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
@@ -292,7 +294,7 @@ const TicketingView: React.FC<TicketingViewProps> = ({ user }) => {
                         <div key={ticket.id} className="bg-white rounded-xl shadow-md p-6 border border-gray-200 hover:shadow-lg transition-shadow">
                             <div className="flex flex-col sm:flex-row justify-between gap-4 mb-4">
                                 <div className="flex-1">
-                                    <div className="flex items-start gap-3 mb-2">
+                                    <div className="flex items-start gap-3 mb-2 cursor-pointer" onClick={() => setExpandedTicketId(expandedTicketId === ticket.id ? null : ticket.id)}>
                                         <h3 className="text-lg font-semibold text-gray-900">{ticket.title}</h3>
                                         <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(ticket.status)}`}>
                                             {ticket.status.replace('_', ' ').toUpperCase()}
@@ -342,8 +344,8 @@ const TicketingView: React.FC<TicketingViewProps> = ({ user }) => {
                                                 onClick={() => handleUpdateStatus(ticket.id, status)}
                                                 disabled={ticket.status === status}
                                                 className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${ticket.status === status
-                                                        ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                                                        : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'
+                                                    ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                                                    : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'
                                                     }`}
                                             >
                                                 {status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
@@ -356,6 +358,13 @@ const TicketingView: React.FC<TicketingViewProps> = ({ user }) => {
                                             <p className="text-sm text-gray-600">{ticket.developer_notes}</p>
                                         </div>
                                     )}
+                                </div>
+                            )}
+
+                            {/* Chat Section */}
+                            {expandedTicketId === ticket.id && (
+                                <div className="mt-4 pt-4 border-t border-gray-200">
+                                    <TicketChat ticketId={ticket.id} user={user} />
                                 </div>
                             )}
                         </div>
