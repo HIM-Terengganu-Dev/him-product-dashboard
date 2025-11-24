@@ -20,11 +20,6 @@ export default async function handler(
         return sendErrorResponse(res, 400, 'User email is required');
     }
 
-    // Only developers can update tickets
-    if (!isDeveloper(userEmail)) {
-        return sendErrorResponse(res, 403, 'Unauthorized: Only developers can update tickets');
-    }
-
     if (!ticketId) {
         return sendErrorResponse(res, 400, 'Ticket ID is required');
     }
@@ -32,6 +27,36 @@ export default async function handler(
     try {
         const client = await pool.connect();
         try {
+            // Check if user has permission to update this ticket
+            const ticketCheck = await client.query(
+                'SELECT submitted_by_email FROM dev_tickets.tickets WHERE id = $1',
+                [ticketId]
+            );
+
+            if (ticketCheck.rows.length === 0) {
+                return sendErrorResponse(res, 404, 'Ticket not found');
+            }
+
+            const ticketOwner = ticketCheck.rows[0].submitted_by_email;
+            const userIsDeveloper = isDeveloper(userEmail);
+            const isTicketOwner = ticketOwner.toLowerCase() === userEmail.toLowerCase();
+
+            // Permission checks:
+            // - Developers can update any ticket (status, developer_notes)
+            // - Ticket owners can only close their own tickets (status = 'closed')
+            // - Developer notes can only be set by developers
+            if (!userIsDeveloper && !isTicketOwner) {
+                return sendErrorResponse(res, 403, 'Unauthorized: You can only update your own tickets');
+            }
+
+            if (developer_notes !== undefined && !userIsDeveloper) {
+                return sendErrorResponse(res, 403, 'Unauthorized: Only developers can add developer notes');
+            }
+
+            if (status && !userIsDeveloper && status !== 'closed') {
+                return sendErrorResponse(res, 403, 'Unauthorized: You can only close your own tickets');
+            }
+
             // Build update query dynamically based on provided fields
             const updates: string[] = [];
             const params: any[] = [];
