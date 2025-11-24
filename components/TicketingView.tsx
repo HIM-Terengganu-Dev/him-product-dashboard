@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import type { Ticket, ListTicketsResponse, SubmitTicketRequest, UpdateTicketRequest } from '../types/tickets';
-import TicketChat from './TicketChat';
 
 interface User {
     name: string;
@@ -21,7 +21,6 @@ const TicketingView: React.FC<TicketingViewProps> = ({ user }) => {
     const [showForm, setShowForm] = useState(false);
     const [filterStatus, setFilterStatus] = useState<string>('all');
     const [submitting, setSubmitting] = useState(false);
-    const [expandedTicketId, setExpandedTicketId] = useState<string | null>(null);
 
     // Form state
     const [title, setTitle] = useState('');
@@ -294,16 +293,18 @@ const TicketingView: React.FC<TicketingViewProps> = ({ user }) => {
                         <div key={ticket.id} className="bg-white rounded-xl shadow-md p-6 border border-gray-200 hover:shadow-lg transition-shadow">
                             <div className="flex flex-col sm:flex-row justify-between gap-4 mb-4">
                                 <div className="flex-1">
-                                    <div className="flex items-start gap-3 mb-2 cursor-pointer" onClick={() => setExpandedTicketId(expandedTicketId === ticket.id ? null : ticket.id)}>
-                                        <h3 className="text-lg font-semibold text-gray-900">{ticket.title}</h3>
-                                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(ticket.status)}`}>
-                                            {ticket.status.replace('_', ' ').toUpperCase()}
-                                        </span>
-                                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getPriorityColor(ticket.priority)}`}>
-                                            {ticket.priority.toUpperCase()}
-                                        </span>
-                                    </div>
-                                    <p className="text-gray-700 whitespace-pre-line">{ticket.description}</p>
+                                    <Link href={`/sales-portal/tickets/${ticket.id}`} className="block">
+                                        <div className="flex items-start gap-3 mb-2">
+                                            <h3 className="text-lg font-semibold text-gray-900 hover:text-indigo-600 transition-colors">{ticket.title}</h3>
+                                            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(ticket.status)}`}>
+                                                {ticket.status.replace('_', ' ').toUpperCase()}
+                                            </span>
+                                            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getPriorityColor(ticket.priority)}`}>
+                                                {ticket.priority.toUpperCase()}
+                                            </span>
+                                        </div>
+                                        <p className="text-gray-700 whitespace-pre-line line-clamp-2">{ticket.description}</p>
+                                    </Link>
                                 </div>
                             </div>
 
@@ -367,19 +368,18 @@ const TicketingView: React.FC<TicketingViewProps> = ({ user }) => {
                                 </div>
                             )}
 
-                            {/* Chat Section */}
-                            {expandedTicketId === ticket.id && (
-                                <div className="mt-4 pt-4 border-t border-gray-200">
-                                    <TicketChat
-                                        ticketId={ticket.id}
-                                        user={user}
-                                        ticketDescription={ticket.description}
-                                        ticketAuthorName={ticket.submitted_by_name}
-                                        ticketAuthorEmail={ticket.submitted_by_email}
-                                        ticketCreatedAt={ticket.created_at}
-                                    />
-                                </div>
-                            )}
+                            {/* View Ticket Link */}
+                            <div className="mt-4 pt-4 border-t border-gray-200">
+                                <Link
+                                    href={`/sales-portal/tickets/${ticket.id}`}
+                                    className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium"
+                                >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                                    </svg>
+                                    View Conversation
+                                </Link>
+                            </div>
                         </div>
                     ))
                 )}
