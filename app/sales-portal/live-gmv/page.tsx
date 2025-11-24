@@ -217,13 +217,6 @@ export default function LiveGMVDashboard() {
                                     <span className="lg:hidden">📋 Records</span>
                                 </Link>
                                 <Link
-                                    href="/sales-portal/live-gmv/manual-entry"
-                                    className="px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                                >
-                                    <span className="hidden lg:inline">✏️ Manual Entry</span>
-                                    <span className="lg:hidden">✏️ Entry</span>
-                                </Link>
-                                <Link
                                     href="/sales-portal/live-gmv/upload"
                                     className="px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-colors shadow-md"
                                 >

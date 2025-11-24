@@ -240,7 +240,18 @@ function LiveGMVUploadContent() {
                             </svg>
                         </div>
                         <div className="flex-1">
-                            <h3 className="text-lg font-bold text-blue-900 mb-2">How to Upload</h3>
+                            <div className="flex items-center justify-between mb-2">
+                                <h3 className="text-lg font-bold text-blue-900">How to Upload</h3>
+                                <Link
+                                    href="/sales-portal/live-gmv/manual-entry"
+                                    className="px-4 py-2 text-sm font-medium text-blue-700 bg-blue-100 border border-blue-300 rounded-lg hover:bg-blue-200 transition-colors"
+                                >
+                                    ✏️ Manual Entry (Alternative)
+                                </Link>
+                            </div>
+                            <p className="text-xs text-blue-700 mb-2 italic">
+                                Can't access TikTok files? Use Manual Entry as an alternative method.
+                            </p>
                             <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
                                 <li>You can upload one or multiple Excel files at once</li>
                                 <li>Date will be auto-detected from each filename (format: "Live campaign data (YYYY-MM-DD - YYYY-MM-DD).xlsx")</li>
