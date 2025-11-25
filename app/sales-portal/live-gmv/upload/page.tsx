@@ -28,6 +28,22 @@ function LiveGMVUploadContent() {
     const [uploading, setUploading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState<{ [key: string]: number }>({});
     const [dragActive, setDragActive] = useState(false);
+    const [userEmail, setUserEmail] = useState<string>('');
+
+    // Get user email from localStorage
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const storedUser = localStorage.getItem('user');
+            if (storedUser) {
+                try {
+                    const userData = JSON.parse(storedUser);
+                    setUserEmail(userData.email || '');
+                } catch (error) {
+                    console.error('Failed to parse user data:', error);
+                }
+            }
+        }
+    }, []);
 
     // Extract date from filename: "Live campaign data (2025-11-21 - 2025-11-21).xlsx"
     const extractDateFromFilename = (filename: string): string | null => {
@@ -149,6 +165,9 @@ function LiveGMVUploadContent() {
                 const formData = new FormData();
                 formData.append('file', fileWithDate.file);
                 formData.append('reportDate', dateToUse);
+                if (userEmail) {
+                    formData.append('userEmail', userEmail);
+                }
 
                 const response = await fetch('/api/tiktok/live-gmv/upload', {
                     method: 'POST',

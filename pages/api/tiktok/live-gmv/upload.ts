@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { IncomingForm, File as FormidableFile } from 'formidable';
 import * as XLSX from 'xlsx';
 import { pool } from '../../../../lib/db-live-gmv';
+import { logOperation } from '../../../../lib/live-gmv-logger';
 import fs from 'fs';
 
 export const config = {
@@ -61,6 +62,11 @@ export default async function handler(
         message: 'Please provide a report date' 
       });
     }
+
+    // Get user email from form fields (optional, for logging)
+    const userEmail = Array.isArray(fields.userEmail) 
+      ? fields.userEmail[0] 
+      : fields.userEmail || 'unknown@unknown.com';
 
     // Get uploaded file
     const fileArray = Array.isArray(files.file) ? files.file : [files.file];
@@ -544,6 +550,21 @@ export default async function handler(
       }
 
       await client.query('COMMIT');
+      
+      // Log the operation
+      await logOperation(
+        insertedCount > 0 && updatedCount > 0 ? 'update' : insertedCount > 0 ? 'upload' : 'update',
+        reportDate,
+        userEmail as string,
+        {
+          records_inserted: insertedCount,
+          records_updated: updatedCount,
+          records_processed: parsedData.length,
+          filename: file.originalFilename || file.newFilename,
+          errors: errors.length > 0 ? errors : undefined,
+          warnings: warnings.length > 0 ? warnings : undefined,
+        }
+      );
       
       // Verify the data was saved correctly (check first record with gross_revenue > 0)
       const recordWithRevenue = parsedData.find(r => r.gross_revenue > 0);

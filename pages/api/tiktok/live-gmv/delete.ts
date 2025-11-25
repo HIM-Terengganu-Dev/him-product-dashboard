@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { pool } from '../../../../lib/db-live-gmv';
+import { logOperation } from '../../../../lib/live-gmv-logger';
 
 export default async function handler(
   req: NextApiRequest,
@@ -10,7 +11,7 @@ export default async function handler(
   }
 
   try {
-    const { date } = req.query;
+    const { date, userEmail } = req.query;
 
     if (!date || typeof date !== 'string') {
       return res.status(400).json({ 
@@ -45,6 +46,17 @@ export default async function handler(
       const deletedCount = result.rowCount || 0;
 
       await client.query('COMMIT');
+
+      // Log the operation
+      const email = typeof userEmail === 'string' ? userEmail : 'unknown@unknown.com';
+      await logOperation(
+        'delete',
+        date,
+        email,
+        {
+          records_deleted: deletedCount,
+        }
+      );
 
       return res.status(200).json({
         success: true,

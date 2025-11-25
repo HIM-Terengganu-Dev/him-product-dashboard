@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { pool } from '../../../../lib/db-live-gmv';
+import { logOperation } from '../../../../lib/live-gmv-logger';
 
 interface ManualEntryData {
   campaign_id: string;
@@ -17,6 +18,7 @@ interface ManualEntryData {
 interface ManualEntryRequest {
   reportDate: string;
   data: ManualEntryData[];
+  userEmail?: string;
 }
 
 export default async function handler(
@@ -168,6 +170,20 @@ export default async function handler(
       }
 
       await client.query('COMMIT');
+
+      // Log the operation
+      const userEmail = body.userEmail || 'unknown@unknown.com';
+      await logOperation(
+        recordsInserted > 0 && recordsUpdated > 0 ? 'update' : recordsInserted > 0 ? 'manual_entry' : 'update',
+        body.reportDate,
+        userEmail,
+        {
+          records_inserted: recordsInserted,
+          records_updated: recordsUpdated,
+          records_processed: body.data.length,
+          errors: errors.length > 0 ? errors : undefined,
+        }
+      );
 
       return res.status(200).json({
         success: true,

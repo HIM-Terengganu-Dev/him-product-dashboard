@@ -13,12 +13,40 @@ interface DateRecord {
   last_uploaded: string | null;
 }
 
+interface OperationLog {
+    id: number;
+    operation_type: string;
+    report_date: string;
+    user_email: string;
+    action_details: any;
+    created_at: string;
+}
+
 export default function LiveGMVRecordsPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [records, setRecords] = useState<DateRecord[]>([]);
     const [deletingDate, setDeletingDate] = useState<string | null>(null);
     const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+    const [logs, setLogs] = useState<OperationLog[]>([]);
+    const [logsLoading, setLogsLoading] = useState(false);
+    const [showLogs, setShowLogs] = useState(false);
+    const [userEmail, setUserEmail] = useState<string>('');
+
+    // Get user email from localStorage
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const storedUser = localStorage.getItem('user');
+            if (storedUser) {
+                try {
+                    const userData = JSON.parse(storedUser);
+                    setUserEmail(userData.email || '');
+                } catch (error) {
+                    console.error('Failed to parse user data:', error);
+                }
+            }
+        }
+    }, []);
 
     const fetchRecords = useCallback(async () => {
         setLoading(true);
@@ -43,6 +71,31 @@ export default function LiveGMVRecordsPage() {
         fetchRecords();
     }, [fetchRecords]);
 
+    const fetchLogs = useCallback(async (date?: string) => {
+        setLogsLoading(true);
+        try {
+            const url = date 
+                ? `/api/tiktok/live-gmv/logs?date=${encodeURIComponent(date)}&limit=50`
+                : `/api/tiktok/live-gmv/logs?limit=100`;
+            const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error('Failed to fetch logs');
+            }
+            const data = await response.json();
+            setLogs(data.data || []);
+        } catch (err) {
+            console.error('Failed to fetch logs:', err);
+        } finally {
+            setLogsLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (showLogs) {
+            fetchLogs();
+        }
+    }, [showLogs, fetchLogs]);
+
     const handleDelete = async (date: string) => {
         if (confirmDelete !== date) {
             setConfirmDelete(date);
@@ -53,7 +106,8 @@ export default function LiveGMVRecordsPage() {
         try {
             // Ensure date is in YYYY-MM-DD format and properly encoded
             const dateParam = encodeURIComponent(date);
-            const response = await fetch(`/api/tiktok/live-gmv/delete?date=${dateParam}`, {
+            const userEmailParam = userEmail ? `&userEmail=${encodeURIComponent(userEmail)}` : '';
+            const response = await fetch(`/api/tiktok/live-gmv/delete?date=${dateParam}${userEmailParam}`, {
                 method: 'DELETE',
             });
 
@@ -63,8 +117,11 @@ export default function LiveGMVRecordsPage() {
                 throw new Error(data.message || data.error || 'Failed to delete records');
             }
 
-            // Refresh the list
+            // Refresh the list and logs
             await fetchRecords();
+            if (showLogs) {
+                await fetchLogs();
+            }
             setConfirmDelete(null);
         } catch (err) {
             alert(err instanceof Error ? err.message : 'Failed to delete records');
@@ -294,6 +351,118 @@ export default function LiveGMVRecordsPage() {
                                         ))}
                                     </tbody>
                                 </table>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* Operation Logs Section */}
+                {!loading && !error && (
+                    <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden mt-6">
+                        <div className="px-6 py-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
+                            <h2 className="text-lg font-bold text-gray-900">
+                                Operation Logs
+                            </h2>
+                            <button
+                                onClick={() => {
+                                    setShowLogs(!showLogs);
+                                    if (!showLogs) {
+                                        fetchLogs();
+                                    }
+                                }}
+                                className="px-4 py-2 text-sm font-medium text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors"
+                            >
+                                {showLogs ? 'Hide Logs' : 'Show Logs'}
+                            </button>
+                        </div>
+
+                        {showLogs && (
+                            <div className="p-6">
+                                {logsLoading ? (
+                                    <div className="flex items-center justify-center py-8">
+                                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                                        <span className="ml-3 text-gray-600">Loading logs...</span>
+                                    </div>
+                                ) : logs.length === 0 ? (
+                                    <div className="text-center py-8 text-gray-500">
+                                        No operation logs found
+                                    </div>
+                                ) : (
+                                    <div className="overflow-x-auto">
+                                        <table className="min-w-full divide-y divide-gray-200">
+                                            <thead className="bg-gray-50">
+                                                <tr>
+                                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                        Time
+                                                    </th>
+                                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                        Operation
+                                                    </th>
+                                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                        Date
+                                                    </th>
+                                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                        User
+                                                    </th>
+                                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                        Details
+                                                    </th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="bg-white divide-y divide-gray-200">
+                                                {logs.map((log) => (
+                                                    <tr key={log.id} className="hover:bg-gray-50">
+                                                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                                                            {formatDateTime(log.created_at)}
+                                                        </td>
+                                                        <td className="px-4 py-3 whitespace-nowrap">
+                                                            <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                                                                log.operation_type === 'upload' || log.operation_type === 'manual_entry' 
+                                                                    ? 'bg-blue-100 text-blue-800'
+                                                                    : log.operation_type === 'update'
+                                                                    ? 'bg-yellow-100 text-yellow-800'
+                                                                    : 'bg-red-100 text-red-800'
+                                                            }`}>
+                                                                {log.operation_type.replace('_', ' ').toUpperCase()}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                                                            {formatDate(log.report_date)}
+                                                        </td>
+                                                        <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                                                            {log.user_email}
+                                                        </td>
+                                                        <td className="px-4 py-3 text-sm text-gray-600">
+                                                            {log.action_details ? (
+                                                                <div className="space-y-1">
+                                                                    {log.action_details.records_inserted !== undefined && (
+                                                                        <div>Inserted: {log.action_details.records_inserted}</div>
+                                                                    )}
+                                                                    {log.action_details.records_updated !== undefined && (
+                                                                        <div>Updated: {log.action_details.records_updated}</div>
+                                                                    )}
+                                                                    {log.action_details.records_deleted !== undefined && (
+                                                                        <div>Deleted: {log.action_details.records_deleted}</div>
+                                                                    )}
+                                                                    {log.action_details.records_processed !== undefined && (
+                                                                        <div>Processed: {log.action_details.records_processed}</div>
+                                                                    )}
+                                                                    {log.action_details.filename && (
+                                                                        <div className="text-xs text-gray-500 truncate max-w-xs" title={log.action_details.filename}>
+                                                            File: {log.action_details.filename}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            ) : (
+                                                                <span className="text-gray-400">-</span>
+                                                            )}
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>

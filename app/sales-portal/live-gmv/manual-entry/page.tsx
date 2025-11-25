@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, Suspense } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 
@@ -25,6 +25,22 @@ function ManualEntryContent() {
     }
     return new Date().toISOString().split('T')[0];
   });
+  const [userEmail, setUserEmail] = useState<string>('');
+
+  // Get user email from localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedUser = localStorage.getItem('user');
+      if (storedUser) {
+        try {
+          const userData = JSON.parse(storedUser);
+          setUserEmail(userData.email || '');
+        } catch (error) {
+          console.error('Failed to parse user data:', error);
+        }
+      }
+    }
+  }, []);
   
   const [rows, setRows] = useState<CampaignRow[]>([
     {
@@ -217,6 +233,7 @@ function ManualEntryContent() {
         body: JSON.stringify({
           reportDate,
           data: formattedData,
+          userEmail: userEmail || undefined,
         }),
       });
 
