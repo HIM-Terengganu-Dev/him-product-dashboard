@@ -31,7 +31,7 @@ type NavItem = {
 };
 
 const navItems: NavItem[] = [
-  { name: 'Dashboard', view: 'Dashboard', icon: DashboardIcon },
+  { name: 'Home', view: 'Dashboard', icon: DashboardIcon },
   { name: 'Orders', view: 'Orders', icon: OrdersIcon },
   {
     name: 'CRM',
