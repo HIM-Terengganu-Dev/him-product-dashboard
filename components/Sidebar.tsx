@@ -13,7 +13,8 @@ interface SidebarProps {
 
 type SubSubItem = {
   name: string;
-  view: ViewType;
+  view?: ViewType;
+  href?: string;
 };
 
 type SubItem = {
@@ -244,16 +245,26 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView, isOpen, se
                           {openSubmenus[subItem.name] && subItem.subItems && (
                             <div className="ml-4 border-l-2 border-indigo-100">
                               {subItem.subItems.map((subSubItem) => (
-                                <div
-                                  key={subSubItem.name}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setActiveView(subSubItem.view);
-                                  }}
-                                  className={`${baseSubItemClass} pl-8 ${activeView === subSubItem.view ? activeSubItemClass : inactiveSubItemClass} relative`}
-                                >
-                                  <span>{subSubItem.name}</span>
-                                </div>
+                                subSubItem.href ? (
+                                  // SubSubItem with href (link-based)
+                                  <Link key={subSubItem.name} href={subSubItem.href}>
+                                    <div className={`${baseSubItemClass} pl-8 ${inactiveSubItemClass} relative`}>
+                                      <span>{subSubItem.name}</span>
+                                    </div>
+                                  </Link>
+                                ) : (
+                                  // SubSubItem with view (view-based)
+                                  <div
+                                    key={subSubItem.name}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (subSubItem.view) setActiveView(subSubItem.view);
+                                    }}
+                                    className={`${baseSubItemClass} pl-8 ${activeView === subSubItem.view ? activeSubItemClass : inactiveSubItemClass} relative`}
+                                  >
+                                    <span>{subSubItem.name}</span>
+                                  </div>
+                                )
                               ))}
                             </div>
                           )}
