@@ -48,6 +48,7 @@ const navItems: NavItem[] = [
 const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView, isOpen, setOpen, unreadTicketCount = 0 }) => {
   const [openSubmenus, setOpenSubmenus] = useState<{ [key: string]: boolean }>({
     'CRM': true,
+    'Sales': true,
   });
 
   const toggleSubmenu = (itemName: string) => {

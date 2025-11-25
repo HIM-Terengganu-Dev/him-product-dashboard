@@ -10,11 +10,12 @@ import ClientStatusView from '../components/ClientStatusView';
 import ClientSegmentView from '../components/ClientSegmentView';
 import ProspectStatusView from '../components/ProspectStatusView';
 import SalesView from '../components/SalesView';
+import SalesTikTokView from '../components/SalesTikTokView';
 import LoginView from '../components/LoginView';
 import TicketingView from '../components/TicketingView';
 import { jwtDecode } from 'jwt-decode';
 
-export type ViewType = "Dashboard" | "Orders" | "CRM" | "Client Status" | "Client Segment" | "Prospect Status" | "Sales" | "Products" | "Messages" | "Settings" | "Support Tickets";
+export type ViewType = "Dashboard" | "Orders" | "CRM" | "Client Status" | "Client Segment" | "Prospect Status" | "Sales" | "Sales Main" | "Sales TikTok" | "Sales Shopee" | "Sales WhatsApp" | "Sales Lazada" | "Products" | "Messages" | "Settings" | "Support Tickets";
 
 interface User {
   name: string;
@@ -46,7 +47,7 @@ export default function HomePage() {
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
       const viewParam = urlParams.get('view');
-      if (viewParam && ['Dashboard', 'Orders', 'CRM', 'Client Status', 'Client Segment', 'Prospect Status', 'Sales', 'Products', 'Messages', 'Settings', 'Support Tickets'].includes(viewParam)) {
+      if (viewParam && ['Dashboard', 'Orders', 'CRM', 'Client Status', 'Client Segment', 'Prospect Status', 'Sales', 'Sales Main', 'Sales TikTok', 'Sales Shopee', 'Sales WhatsApp', 'Sales Lazada', 'Products', 'Messages', 'Settings', 'Support Tickets'].includes(viewParam)) {
         setActiveView(viewParam as ViewType);
       }
     }
@@ -178,7 +179,16 @@ export default function HomePage() {
       case "Prospect Status":
         return <ProspectStatusView />;
       case "Sales":
+      case "Sales Main":
         return <SalesView />;
+      case "Sales TikTok":
+        return <SalesTikTokView />;
+      case "Sales Shopee":
+        return <PlaceholderView title="Shopee Sales" />;
+      case "Sales WhatsApp":
+        return <PlaceholderView title="WhatsApp Sales" />;
+      case "Sales Lazada":
+        return <PlaceholderView title="Lazada Sales" />;
       case "Products":
         return <PlaceholderView title="Products" />;
       case "Messages":

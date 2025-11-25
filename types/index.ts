@@ -11,9 +11,15 @@ export type ViewType =
   | "Client Segment"
   | "Prospect Status"
   | "Sales"
+  | "Sales Main"
+  | "Sales TikTok"
+  | "Sales Shopee"
+  | "Sales WhatsApp"
+  | "Sales Lazada"
   | "Products"
   | "Messages"
-  | "Settings";
+  | "Settings"
+  | "Support Tickets";
 
 // ==================== Contact Types ====================
 export interface Contact {
