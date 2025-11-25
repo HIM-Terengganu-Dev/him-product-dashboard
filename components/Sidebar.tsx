@@ -32,7 +32,18 @@ const navItems: NavItem[] = [
       { name: 'Client Segment', view: 'Client Segment' },
     ],
   },
-  { name: 'Sales', view: 'Sales', icon: SalesIcon },
+  {
+    name: 'Sales',
+    icon: SalesIcon,
+    subItems: [
+      { name: 'All', view: 'Sales All' },
+      { name: 'TikTok', view: 'Sales TikTok BI' },
+      { name: 'Shopee', view: 'Sales Shopee BI' },
+      { name: 'WhatsApp', view: 'Sales WhatsApp BI' },
+      { name: 'Lazada', view: 'Sales Lazada BI' },
+      { name: 'Sales Portal', view: 'Sales Portal' },
+    ],
+  },
   { name: 'Products', view: 'Products', icon: ProductsIcon },
   { name: 'Messages', view: 'Messages', icon: MessagesIcon },
   {

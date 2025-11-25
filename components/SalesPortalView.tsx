@@ -3,10 +3,10 @@
 import React from 'react';
 import Link from 'next/link';
 
-export default function SalesView() {
+export default function SalesPortalView() {
     return (
         <div className="min-h-full flex items-center justify-center p-3 sm:p-6">
-            <div className="max-w-2xl w-full bg-white rounded-2xl sm:rounded-3xl p-6 sm:p-8 md:p-12 shadow-2xl border border-gray-100">
+            <div className="max-w-4xl w-full bg-white rounded-2xl sm:rounded-3xl p-6 sm:p-8 md:p-12 shadow-2xl border border-gray-100">
                 {/* Icon */}
                 <div className="flex justify-center mb-4 sm:mb-6">
                     <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full flex items-center justify-center shadow-lg">
@@ -18,7 +18,7 @@ export default function SalesView() {
 
                 {/* Title */}
                 <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 text-center mb-3 sm:mb-4">
-                    Sales Management
+                    Sales Portal
                 </h1>
 
                 {/* Subtitle */}
@@ -30,7 +30,7 @@ export default function SalesView() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6">
                     {/* TikTok */}
                     <button
-                        onClick={() => window.location.href = '/?view=Sales TikTok'}
+                        onClick={() => window.location.href = '/?view=Sales Portal'}
                         className="bg-gradient-to-br from-pink-50 to-red-50 rounded-xl sm:rounded-2xl p-6 sm:p-8 border-2 border-pink-100 hover:border-pink-300 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-1 text-left"
                     >
                         <div className="flex items-center gap-3 mb-3">
@@ -42,12 +42,14 @@ export default function SalesView() {
                             <h3 className="text-lg sm:text-xl font-bold text-gray-900">TikTok</h3>
                         </div>
                         <p className="text-sm text-gray-600 mb-3">Live GMV & Product GMV analytics</p>
-                        <span className="text-pink-600 font-semibold text-sm">View →</span>
+                        <a href="/sales-portal/tiktok" className="text-pink-600 font-semibold text-sm inline-flex items-center gap-1">
+                            <span>View →</span>
+                        </a>
                     </button>
 
                     {/* Shopee */}
                     <button
-                        onClick={() => window.location.href = '/?view=Sales Shopee'}
+                        onClick={() => window.location.href = '/?view=Sales Portal'}
                         className="bg-gradient-to-br from-orange-50 to-red-50 rounded-xl sm:rounded-2xl p-6 sm:p-8 border-2 border-orange-100 hover:border-orange-300 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-1 text-left"
                     >
                         <div className="flex items-center gap-3 mb-3">
@@ -62,7 +64,7 @@ export default function SalesView() {
 
                     {/* WhatsApp */}
                     <button
-                        onClick={() => window.location.href = '/?view=Sales WhatsApp'}
+                        onClick={() => window.location.href = '/?view=Sales Portal'}
                         className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl sm:rounded-2xl p-6 sm:p-8 border-2 border-green-100 hover:border-green-300 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-1 text-left"
                     >
                         <div className="flex items-center gap-3 mb-3">
@@ -79,7 +81,7 @@ export default function SalesView() {
 
                     {/* Lazada */}
                     <button
-                        onClick={() => window.location.href = '/?view=Sales Lazada'}
+                        onClick={() => window.location.href = '/?view=Sales Portal'}
                         className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl sm:rounded-2xl p-6 sm:p-8 border-2 border-blue-100 hover:border-blue-300 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-1 text-left"
                     >
                         <div className="flex items-center gap-3 mb-3">
@@ -91,12 +93,6 @@ export default function SalesView() {
                         <p className="text-sm text-gray-600 mb-3">Coming soon</p>
                         <span className="text-blue-600 font-semibold text-sm">View →</span>
                     </button>
-                </div>
-
-                {/* Features List */}
-                <div className="space-y-3">
-                    <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Available Features:</h3>
-                    
                 </div>
             </div>
         </div>
