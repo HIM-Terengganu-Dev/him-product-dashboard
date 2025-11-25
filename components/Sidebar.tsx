@@ -67,7 +67,6 @@ const navItems: NavItem[] = [
           { name: 'Shopee', view: 'Sales Data Shopee' },
           { name: 'WhatsApp', view: 'Sales Data WhatsApp' },
           { name: 'Lazada', view: 'Sales Data Lazada' },
-          { name: 'Product GMV', href: '/sales-portal/tiktok/product-gmv' },
         ],
       },
     ],
