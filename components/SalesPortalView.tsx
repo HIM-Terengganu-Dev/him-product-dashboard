@@ -29,9 +29,9 @@ export default function SalesPortalView() {
                 {/* Marketplace Cards Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6">
                     {/* TikTok */}
-                    <button
-                        onClick={() => window.location.href = '/?view=Sales Portal'}
-                        className="bg-gradient-to-br from-pink-50 to-red-50 rounded-xl sm:rounded-2xl p-6 sm:p-8 border-2 border-pink-100 hover:border-pink-300 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-1 text-left"
+                    <Link
+                        href="/sales-portal/tiktok"
+                        className="bg-gradient-to-br from-pink-50 to-red-50 rounded-xl sm:rounded-2xl p-6 sm:p-8 border-2 border-pink-100 hover:border-pink-300 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-1 text-left block"
                     >
                         <div className="flex items-center gap-3 mb-3">
                             <div className="w-10 h-10 bg-gradient-to-br from-pink-400 to-red-500 rounded-full flex items-center justify-center">
@@ -42,10 +42,10 @@ export default function SalesPortalView() {
                             <h3 className="text-lg sm:text-xl font-bold text-gray-900">TikTok</h3>
                         </div>
                         <p className="text-sm text-gray-600 mb-3">Live GMV & Product GMV analytics</p>
-                        <a href="/sales-portal/tiktok" className="text-pink-600 font-semibold text-sm inline-flex items-center gap-1">
+                        <span className="text-pink-600 font-semibold text-sm inline-flex items-center gap-1">
                             <span>View →</span>
-                        </a>
-                    </button>
+                        </span>
+                    </Link>
 
                     {/* Shopee */}
                     <button
