@@ -105,6 +105,48 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView, isOpen, se
     });
   };
 
+  // Auto-expand dropdowns if any child item is active
+  useEffect(() => {
+    const shouldExpand: { [key: string]: boolean } = {};
+    
+    // Check CRM dropdown
+    if (['CRM', 'Client Status', 'Client Segment', 'Prospect Status'].includes(activeView)) {
+      shouldExpand['CRM'] = true;
+    }
+    
+    // Check Sales dropdown
+    if (['Sales', 'Sales BI All', 'Sales BI TikTok', 'Sales BI Shopee', 'Sales BI WhatsApp', 'Sales BI Lazada', 
+         'Sales Data Management', 'Sales Data TikTok', 'Sales Data Shopee', 'Sales Data WhatsApp', 'Sales Data Lazada'].includes(activeView)) {
+      shouldExpand['Sales'] = true;
+      
+      // Check BI Dashboard sub-dropdown
+      if (['Sales BI All', 'Sales BI TikTok', 'Sales BI Shopee', 'Sales BI WhatsApp', 'Sales BI Lazada'].includes(activeView)) {
+        shouldExpand['BI Dashboard'] = true;
+      }
+      
+      // Check Data Management sub-dropdown
+      if (['Sales Data Management', 'Sales Data TikTok', 'Sales Data Shopee', 'Sales Data WhatsApp', 'Sales Data Lazada'].includes(activeView)) {
+        shouldExpand['Data Management'] = true;
+      }
+    }
+    
+    // Check Settings dropdown
+    if (['Settings', 'Support Tickets'].includes(activeView)) {
+      shouldExpand['Settings'] = true;
+    }
+    
+    // Update openSubmenus if needed
+    setOpenSubmenus(prev => {
+      const updated = { ...prev };
+      Object.keys(shouldExpand).forEach(key => {
+        if (shouldExpand[key]) {
+          updated[key] = true;
+        }
+      });
+      return updated;
+    });
+  }, [activeView]);
+
   const baseItemClass = "flex items-center p-3 my-1 rounded-lg cursor-pointer transition-colors duration-200";
   const activeItemClass = "bg-indigo-600 text-white shadow-lg";
   const inactiveItemClass = "text-gray-500 hover:bg-indigo-50 hover:text-indigo-600";
