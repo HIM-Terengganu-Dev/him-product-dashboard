@@ -11,12 +11,23 @@ interface SidebarProps {
   unreadTicketCount?: number;
 }
 
+type SubSubItem = {
+  name: string;
+  view: ViewType;
+};
+
+type SubItem = {
+  name: string;
+  view?: ViewType;
+  subItems?: SubSubItem[];
+};
+
 type NavItem = {
   name: string;
   view?: ViewType;
   href?: string;
   icon: React.FC<React.SVGProps<SVGSVGElement>>;
-  subItems?: { name: string; view: ViewType }[];
+  subItems?: SubItem[];
 };
 
 const navItems: NavItem[] = [
@@ -36,12 +47,26 @@ const navItems: NavItem[] = [
     name: 'Sales',
     icon: SalesIcon,
     subItems: [
-      { name: 'All', view: 'Sales All' },
-      { name: 'TikTok', view: 'Sales TikTok BI' },
-      { name: 'Shopee', view: 'Sales Shopee BI' },
-      { name: 'WhatsApp', view: 'Sales WhatsApp BI' },
-      { name: 'Lazada', view: 'Sales Lazada BI' },
-      { name: 'Sales Portal', view: 'Sales Portal' },
+      {
+        name: 'BI Dashboard',
+        subItems: [
+          { name: 'All', view: 'Sales BI All' },
+          { name: 'TikTok', view: 'Sales BI TikTok' },
+          { name: 'Shopee', view: 'Sales BI Shopee' },
+          { name: 'WhatsApp', view: 'Sales BI WhatsApp' },
+          { name: 'Lazada', view: 'Sales BI Lazada' },
+        ],
+      },
+      {
+        name: 'Data Management',
+        view: 'Sales Data Management',
+        subItems: [
+          { name: 'TikTok', view: 'Sales Data TikTok' },
+          { name: 'Shopee', view: 'Sales Data Shopee' },
+          { name: 'WhatsApp', view: 'Sales Data WhatsApp' },
+          { name: 'Lazada', view: 'Sales Data Lazada' },
+        ],
+      },
     ],
   },
   { name: 'Products', view: 'Products', icon: ProductsIcon },
@@ -60,10 +85,24 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView, isOpen, se
   const [openSubmenus, setOpenSubmenus] = useState<{ [key: string]: boolean }>({
     'CRM': true,
     'Sales': true,
+    'BI Dashboard': true,
+    'Data Management': true,
   });
 
   const toggleSubmenu = (itemName: string) => {
     setOpenSubmenus(prev => ({ ...prev, [itemName]: !prev[itemName] }));
+  };
+
+  // Helper function to check if any nested sub-item is active
+  const isNestedSubItemActive = (subItems?: SubItem[]): boolean => {
+    if (!subItems) return false;
+    return subItems.some(subItem => {
+      if (subItem.view && activeView === subItem.view) return true;
+      if (subItem.subItems) {
+        return subItem.subItems.some(subSubItem => activeView === subSubItem.view);
+      }
+      return false;
+    });
   };
 
   const baseItemClass = "flex items-center p-3 my-1 rounded-lg cursor-pointer transition-colors duration-200";
@@ -126,7 +165,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView, isOpen, se
                       setActiveView(item.view);
                     }
                   }}
-                  className={`${baseItemClass} ${(activeView === item.view || item.subItems?.some(si => si.view === activeView)) ? activeItemClass : inactiveItemClass
+                  className={`${baseItemClass} ${(activeView === item.view || isNestedSubItemActive(item.subItems)) ? activeItemClass : inactiveItemClass
                     }`}
                 >
                   <item.icon className="h-6 w-6" />
@@ -144,16 +183,53 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView, isOpen, se
               {isOpen && openSubmenus[item.name] && item.subItems && (
                 <div className="ml-4 border-l-2 border-indigo-100">
                   {item.subItems.map((subItem) => (
-                    <div
-                      key={subItem.name}
-                      onClick={() => setActiveView(subItem.view)}
-                      className={`${baseSubItemClass} ${activeView === subItem.view ? activeSubItemClass : inactiveSubItemClass} relative`}
-                    >
-                      <span>{subItem.name}</span>
-                      {subItem.view === 'Support Tickets' && unreadTicketCount > 0 && (
-                        <span className="ml-auto bg-red-500 text-white text-xs font-bold rounded-full px-2 py-0.5 min-w-[20px] text-center">
-                          {unreadTicketCount > 99 ? '99+' : unreadTicketCount}
-                        </span>
+                    <div key={subItem.name}>
+                      {subItem.subItems ? (
+                        // Nested sub-menu (has its own sub-items)
+                        <>
+                          <div
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleSubmenu(subItem.name);
+                            }}
+                            className={`${baseSubItemClass} ${(subItem.view && activeView === subItem.view) || (subItem.subItems?.some(ssi => activeView === ssi.view)) ? activeSubItemClass : inactiveSubItemClass} relative`}
+                          >
+                            <span>{subItem.name}</span>
+                            <ChevronDownIcon className={`w-4 h-4 ml-auto transition-transform duration-200 ${openSubmenus[subItem.name] ? '' : '-rotate-90'}`} />
+                          </div>
+                          {openSubmenus[subItem.name] && subItem.subItems && (
+                            <div className="ml-4 border-l-2 border-indigo-100">
+                              {subItem.subItems.map((subSubItem) => (
+                                <div
+                                  key={subSubItem.name}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActiveView(subSubItem.view);
+                                  }}
+                                  className={`${baseSubItemClass} pl-8 ${activeView === subSubItem.view ? activeSubItemClass : inactiveSubItemClass} relative`}
+                                >
+                                  <span>{subSubItem.name}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        // Regular sub-item (no nested sub-items)
+                        <div
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (subItem.view) setActiveView(subItem.view);
+                          }}
+                          className={`${baseSubItemClass} ${subItem.view && activeView === subItem.view ? activeSubItemClass : inactiveSubItemClass} relative`}
+                        >
+                          <span>{subItem.name}</span>
+                          {subItem.view === 'Support Tickets' && unreadTicketCount > 0 && (
+                            <span className="ml-auto bg-red-500 text-white text-xs font-bold rounded-full px-2 py-0.5 min-w-[20px] text-center">
+                              {unreadTicketCount > 99 ? '99+' : unreadTicketCount}
+                            </span>
+                          )}
+                        </div>
                       )}
                     </div>
                   ))}

@@ -10,12 +10,13 @@ import ClientStatusView from '../components/ClientStatusView';
 import ClientSegmentView from '../components/ClientSegmentView';
 import ProspectStatusView from '../components/ProspectStatusView';
 import SalesBIDashboardView from '../components/SalesBIDashboardView';
+import SalesDataManagementView from '../components/SalesDataManagementView';
 import SalesPortalView from '../components/SalesPortalView';
 import LoginView from '../components/LoginView';
 import TicketingView from '../components/TicketingView';
 import { jwtDecode } from 'jwt-decode';
 
-export type ViewType = "Dashboard" | "Orders" | "CRM" | "Client Status" | "Client Segment" | "Prospect Status" | "Sales" | "Sales All" | "Sales TikTok BI" | "Sales Shopee BI" | "Sales WhatsApp BI" | "Sales Lazada BI" | "Sales Portal" | "Products" | "Messages" | "Settings" | "Support Tickets";
+export type ViewType = "Dashboard" | "Orders" | "CRM" | "Client Status" | "Client Segment" | "Prospect Status" | "Sales" | "Sales BI All" | "Sales BI TikTok" | "Sales BI Shopee" | "Sales BI WhatsApp" | "Sales BI Lazada" | "Sales Data Management" | "Sales Data TikTok" | "Sales Data Shopee" | "Sales Data WhatsApp" | "Sales Data Lazada" | "Products" | "Messages" | "Settings" | "Support Tickets";
 
 interface User {
   name: string;
@@ -47,7 +48,7 @@ export default function HomePage() {
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
       const viewParam = urlParams.get('view');
-      if (viewParam && ['Dashboard', 'Orders', 'CRM', 'Client Status', 'Client Segment', 'Prospect Status', 'Sales', 'Sales All', 'Sales TikTok BI', 'Sales Shopee BI', 'Sales WhatsApp BI', 'Sales Lazada BI', 'Sales Portal', 'Products', 'Messages', 'Settings', 'Support Tickets'].includes(viewParam)) {
+      if (viewParam && ['Dashboard', 'Orders', 'CRM', 'Client Status', 'Client Segment', 'Prospect Status', 'Sales', 'Sales BI All', 'Sales BI TikTok', 'Sales BI Shopee', 'Sales BI WhatsApp', 'Sales BI Lazada', 'Sales Data Management', 'Sales Data TikTok', 'Sales Data Shopee', 'Sales Data WhatsApp', 'Sales Data Lazada', 'Products', 'Messages', 'Settings', 'Support Tickets'].includes(viewParam)) {
         setActiveView(viewParam as ViewType);
       }
     }
@@ -179,18 +180,26 @@ export default function HomePage() {
       case "Prospect Status":
         return <ProspectStatusView />;
       case "Sales":
-      case "Sales All":
+      case "Sales BI All":
         return <SalesBIDashboardView marketplace="all" />;
-      case "Sales TikTok BI":
+      case "Sales BI TikTok":
         return <SalesBIDashboardView marketplace="tiktok" />;
-      case "Sales Shopee BI":
+      case "Sales BI Shopee":
         return <SalesBIDashboardView marketplace="shopee" />;
-      case "Sales WhatsApp BI":
+      case "Sales BI WhatsApp":
         return <SalesBIDashboardView marketplace="whatsapp" />;
-      case "Sales Lazada BI":
+      case "Sales BI Lazada":
         return <SalesBIDashboardView marketplace="lazada" />;
-      case "Sales Portal":
+      case "Sales Data Management":
         return <SalesPortalView />;
+      case "Sales Data TikTok":
+        return <SalesDataManagementView marketplace="tiktok" />;
+      case "Sales Data Shopee":
+        return <SalesDataManagementView marketplace="shopee" />;
+      case "Sales Data WhatsApp":
+        return <SalesDataManagementView marketplace="whatsapp" />;
+      case "Sales Data Lazada":
+        return <SalesDataManagementView marketplace="lazada" />;
       case "Products":
         return <PlaceholderView title="Products" />;
       case "Messages":
