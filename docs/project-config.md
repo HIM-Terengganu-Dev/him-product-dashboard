@@ -30,7 +30,7 @@ The following environment variables are required:
   - `dim` - Dimension tables (denormalized)
   - `ref` - Reference/lookup tables
 - **Connection**: Via `POSTGRES_URL` environment variable (read-only for queries)
-- **Owner Access**: Via `POSTGRES_URL_DDL` in `database/.env` for DDL operations
+- **Owner Access**: Via `CURSORMADE_HIM_DB_DDL` in `database/.env` for DDL operations
 - **DDL Management**: All database files in `database/` folder (keeps root clean)
 - **Main Tables**:
   - `fact.fact_orders` - Order line items fact table (47,070 rows initial ingest)

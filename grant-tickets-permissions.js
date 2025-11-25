@@ -57,7 +57,7 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA dev_tickets
 async function grantPermissions() {
     // Use DDL credentials (admin) to grant permissions
     const pool = new Pool({
-        connectionString: process.env.POSTGRES_URL_DDL,
+        connectionString: process.env.CURSORMADE_HIM_DB_DDL,
     });
 
     try {

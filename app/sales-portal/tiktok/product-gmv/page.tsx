@@ -72,10 +72,10 @@ export default function ProductGMVDashboard() {
 
                 if (!metricsRes.ok) {
                     const errorData = await metricsRes.json();
-                    throw new Error(errorData.message || 'Failed to fetch metrics');
+                    throw new Error(errorData.error || errorData.message || 'No data keyed in for this date');
                 }
                 if (!groupsRes.ok) {
-                    throw new Error('Failed to fetch group data');
+                    throw new Error('No data keyed in for this date');
                 }
 
                 const metricsData = await metricsRes.json();
@@ -86,7 +86,7 @@ export default function ProductGMVDashboard() {
                 if (metricsData.data) {
                     setMetrics(metricsData.data);
                 } else {
-                    throw new Error('Invalid metrics data received');
+                    throw new Error('No data keyed in for this date');
                 }
                 
                 if (groupsData.data) {
@@ -96,7 +96,7 @@ export default function ProductGMVDashboard() {
                 }
             } catch (err) {
                 if (!cancelled) {
-                    setError(err instanceof Error ? err.message : 'Failed to fetch data');
+                    setError(err instanceof Error ? err.message : 'No data keyed in for this date');
                 }
             } finally {
                 if (!cancelled) {

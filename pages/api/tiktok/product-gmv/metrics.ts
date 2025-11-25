@@ -20,7 +20,7 @@ export default async function handler(
     const currentMetrics = await getDailyMetrics(targetDate);
 
     if (!currentMetrics) {
-      return res.status(404).json({ error: 'No data found for specified date' });
+      return res.status(404).json({ error: 'No data keyed in for this date' });
     }
 
     // Calculate comparison metrics based on requested period
@@ -166,4 +166,5 @@ function getDateOffsetMonths(dateStr: string, months: number): string {
   date.setMonth(date.getMonth() + months);
   return date.toISOString().split('T')[0];
 }
+
 
