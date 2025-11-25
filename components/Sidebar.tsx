@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import type { ViewType } from '../app/page';
 import { DashboardIcon, OrdersIcon, CrmIcon, SalesIcon, ProductsIcon, MessagesIcon, SettingsIcon, ChevronLeftIcon, ChevronDownIcon } from './Icons';
@@ -83,10 +83,10 @@ const navItems: NavItem[] = [
 
 const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView, isOpen, setOpen, unreadTicketCount = 0 }) => {
   const [openSubmenus, setOpenSubmenus] = useState<{ [key: string]: boolean }>({
-    'CRM': true,
-    'Sales': true,
-    'BI Dashboard': true,
-    'Data Management': true,
+    'CRM': false,
+    'Sales': false,
+    'BI Dashboard': false,
+    'Data Management': false,
   });
 
   const toggleSubmenu = (itemName: string) => {

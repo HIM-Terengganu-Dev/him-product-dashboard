@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
 import Sidebar from '../components/Sidebar';
-import DashboardView from '../components/DashboardView';
+import Home from '../components/Home';
 import CrmView from '../components/CrmView';
 import PlaceholderView from '../components/PlaceholderView';
 import Header from '../components/Header';
@@ -39,7 +39,7 @@ export default function HomePage() {
   const [authError, setAuthError] = useState<string | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
 
-  const [activeView, setActiveView] = useState<ViewType>("CRM");
+  const [activeView, setActiveView] = useState<ViewType>("Dashboard");
   const [isSidebarOpen, setSidebarOpen] = useState(false); // Closed on mobile by default
   const [unreadTicketCount, setUnreadTicketCount] = useState(0);
 
@@ -168,7 +168,7 @@ export default function HomePage() {
   const renderView = useCallback(() => {
     switch (activeView) {
       case "Dashboard":
-        return <DashboardView />;
+        return <Home />;
       case "Orders":
         return <PlaceholderView title="Orders" />;
       case "CRM":
@@ -209,7 +209,7 @@ export default function HomePage() {
       case "Support Tickets":
         return <TicketingView user={user!} />;
       default:
-        return <CrmView />;
+        return <Home />;
     }
   }, [activeView]);
 

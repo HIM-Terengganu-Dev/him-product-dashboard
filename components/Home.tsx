@@ -10,7 +10,7 @@ interface DashboardStats {
   totalLeads: number;
 }
 
-const DashboardView: React.FC = () => {
+const Home: React.FC = () => {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -511,4 +511,4 @@ const DashboardView: React.FC = () => {
   );
 };
 
-export default DashboardView;
+export default Home;
