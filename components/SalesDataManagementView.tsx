@@ -77,13 +77,16 @@ export default function SalesDataManagementView({ marketplace }: SalesDataManage
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2 mb-2">
                                         <h3 className="text-xl sm:text-2xl font-bold text-gray-900">Product GMV</h3>
-                                        <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-bold rounded-full">SOON</span>
+                                        <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-bold rounded-full">LIVE</span>
                                     </div>
                                     <p className="text-sm sm:text-base text-gray-700 mb-4 leading-relaxed">
-                                        Upload, manage, and view Product GMV data. Coming soon.
+                                        Upload, manage, and view Product GMV data. Access upload, manual entry, and records management.
                                     </p>
-                                    <div className="inline-flex items-center gap-2 text-pink-600 font-semibold text-sm sm:text-base opacity-50">
-                                        <span>Coming Soon</span>
+                                    <div className="inline-flex items-center gap-2 text-pink-600 font-semibold text-sm sm:text-base">
+                                        <span>Manage Data</span>
+                                        <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                                        </svg>
                                     </div>
                                 </div>
                             </div>
