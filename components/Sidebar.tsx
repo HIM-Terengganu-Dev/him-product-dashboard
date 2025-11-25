@@ -260,20 +260,30 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView, isOpen, se
                         </>
                       ) : (
                         // Regular sub-item (no nested sub-items)
-                        <div
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (subItem.view) setActiveView(subItem.view);
-                          }}
-                          className={`${baseSubItemClass} ${subItem.view && activeView === subItem.view ? activeSubItemClass : inactiveSubItemClass} relative`}
-                        >
-                          <span>{subItem.name}</span>
-                          {subItem.view === 'Support Tickets' && unreadTicketCount > 0 && (
-                            <span className="ml-auto bg-red-500 text-white text-xs font-bold rounded-full px-2 py-0.5 min-w-[20px] text-center">
-                              {unreadTicketCount > 99 ? '99+' : unreadTicketCount}
-                            </span>
-                          )}
-                        </div>
+                        subItem.href ? (
+                          // Sub-item with href (link-based)
+                          <Link href={subItem.href}>
+                            <div className={`${baseSubItemClass} ${inactiveSubItemClass} relative`}>
+                              <span>{subItem.name}</span>
+                            </div>
+                          </Link>
+                        ) : (
+                          // Sub-item with view (view-based)
+                          <div
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (subItem.view) setActiveView(subItem.view);
+                            }}
+                            className={`${baseSubItemClass} ${subItem.view && activeView === subItem.view ? activeSubItemClass : inactiveSubItemClass} relative`}
+                          >
+                            <span>{subItem.name}</span>
+                            {subItem.view === 'Support Tickets' && unreadTicketCount > 0 && (
+                              <span className="ml-auto bg-red-500 text-white text-xs font-bold rounded-full px-2 py-0.5 min-w-[20px] text-center">
+                                {unreadTicketCount > 99 ? '99+' : unreadTicketCount}
+                              </span>
+                            )}
+                          </div>
+                        )
                       )}
                     </div>
                   ))}
